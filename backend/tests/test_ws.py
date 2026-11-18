@@ -1,0 +1,88 @@
+import asyncio
+import json
+import socket
+import threading
+import time
+
+import httpx
+import pytest
+import uvicorn
+import websockets
+
+from app.main import app
+
+from .conftest import PASSWORDS
+
+
+@pytest.fixture
+def live_server(fresh_data):
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    for _ in range(100):
+        if server.started:
+            break
+        time.sleep(0.05)
+    yield f"127.0.0.1:{port}"
+    server.should_exit = True
+    thread.join(timeout=5)
+
+
+def token(base: str, username: str) -> str:
+    r = httpx.post(f"http://{base}/api/auth/login", json={"username": username, "password": PASSWORDS[username]})
+    return r.json()["token"]
+
+
+async def recv_until(ws, type_: str, timeout: float = 5.0, where=lambda d: True) -> dict:
+    deadline = asyncio.get_running_loop().time() + timeout
+    while True:
+        msg = json.loads(await asyncio.wait_for(ws.recv(), deadline - asyncio.get_running_loop().time()))
+        if msg["type"] == type_ and where(msg["data"]):
+            return msg
+
+
+async def test_bad_token_closes_4401(live_server):
+    async with websockets.connect(f"ws://{live_server}/ws?token=garbage") as ws:
+        with pytest.raises(websockets.ConnectionClosed) as exc:
+            await ws.recv()
+    assert exc.value.rcvd.code == 4401
+
+
+async def test_live_bid_round_trip(live_server):
+    base = live_server
+    admin = {"Authorization": f"Bearer {token(base, 'admin')}"}
+    t1, t2 = token(base, "owner1"), token(base, "owner2")
+
+    async with (
+        websockets.connect(f"ws://{base}/ws?token={t1}") as ws1,
+        websockets.connect(f"ws://{base}/ws?token={t2}") as ws2,
+    ):
+        first = await recv_until(ws1, "state")
+        assert first["data"]["status"] == "not_started"
+
+        await ws1.send(json.dumps({"type": "ping", "data": {}}))
+        pong = await recv_until(ws1, "pong")
+        assert abs(pong["data"]["server_now"] - time.time() * 1000) < 5000
+
+        async with httpx.AsyncClient(base_url=f"http://{base}") as c:
+            await c.post("/api/auction/start", headers=admin)
+            await c.post("/api/auction/next", json={"mode": "order"}, headers=admin)
+        opened = await recv_until(ws2, "lot_opened")
+        lot_id = opened["data"]["lot_id"]
+
+        await ws1.send(json.dumps({"type": "bid", "data": {"lot_id": lot_id, "amount": 200}}))
+        placed = await recv_until(ws2, "bid_placed")
+        assert placed["data"]["team_id"] == 1 and placed["data"]["next_bid"] == 220
+
+        # Stale amount goes back to the bidder only.
+        await ws2.send(json.dumps({"type": "bid", "data": {"lot_id": lot_id, "amount": 200}}))
+        rejected = await recv_until(ws2, "bid_rejected")
+        assert rejected["data"]["reason"] == "STALE_AMOUNT"
+
+        snap = await recv_until(ws1, "state", where=lambda d: d["lot"] and d["lot"]["high_bid"])
+        assert snap["data"]["lot"]["high_team_id"] == 1
+        assert set(snap["data"]["online"]) >= {2, 3}
