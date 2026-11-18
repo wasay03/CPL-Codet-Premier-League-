@@ -104,7 +104,7 @@ The backend suite covers:
 | `DATABASE_URL` | From the Postgres plugin |
 | `JWT_SECRET` | 64 random characters (signs login tokens) |
 | `ADMIN_PASSWORD`, `OWNER1_PASSWORD`, `OWNER2_PASSWORD`, `OWNER3_PASSWORD` | First-login passwords, used when the seed migration runs |
-| `TZ` | `Asia/Karachi`, used for the CSV export timestamp |
+| `TIMEZONE` | `Asia/Karachi`, used for the CSV export timestamp |
 
 ## Notes and small departures from the plan
 

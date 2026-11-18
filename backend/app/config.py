@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     require_password_change: bool = True
     db_nullpool: bool = False
     static_dir: str = "static"
-    tz: str = "Asia/Karachi"
+    timezone: str = "Asia/Karachi"  # env TIMEZONE (TZ is reserved on Vercel)
     bid_rate_per_sec: int = 5
 
     @property

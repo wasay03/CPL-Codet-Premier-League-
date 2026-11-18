@@ -119,7 +119,7 @@ async def audit(_: AdminUser, session: Session, limit: int = 200) -> list[dict]:
 
 @router.get("/export/results.csv")
 async def export_results(_: AdminUser, session: Session) -> StreamingResponse:
-    tz = ZoneInfo(get_settings().tz)
+    tz = ZoneInfo(get_settings().timezone)
     tiers = {t.id: t.name for t in await load_tiers(session)}
     teams = (await session.scalars(select(Team).order_by(Team.id))).all()
     players = (await session.scalars(select(Player).order_by(Player.sold_price.desc().nulls_last()))).all()
