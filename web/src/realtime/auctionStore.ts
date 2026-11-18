@@ -23,6 +23,7 @@ interface AuctionStore {
   snap: Snapshot | null;
   offset: number; // server clock minus local clock, ms
   connected: boolean;
+  polling: boolean; // true while live data comes from HTTP polling instead of the WebSocket
   pendingBid: boolean;
   rejection: { reason: string; at: number } | null;
   overlay: Overlay | null;
@@ -30,6 +31,7 @@ interface AuctionStore {
   setSnapshot: (s: Snapshot) => void;
   syncClock: (serverNow: number) => void;
   setConnected: (v: boolean) => void;
+  setPolling: (v: boolean) => void;
   setPending: (v: boolean) => void;
   reject: (reason: string) => void;
   showOverlay: (o: Omit<Overlay, "key">) => void;
@@ -44,6 +46,7 @@ export const useAuction = create<AuctionStore>((set, get) => ({
   snap: null,
   offset: 0,
   connected: false,
+  polling: false,
   pendingBid: false,
   rejection: null,
   overlay: null,
@@ -55,14 +58,15 @@ export const useAuction = create<AuctionStore>((set, get) => ({
     get().syncClock(s.server_now);
   },
   syncClock: (serverNow) => set({ offset: serverNow - Date.now() }),
-  setConnected: (v) => set({ connected: v }),
+  setConnected: (v) => set(v ? { connected: true, polling: false } : { connected: false }),
+  setPolling: (v) => set({ polling: v }),
   setPending: (v) => set({ pendingBid: v }),
   reject: (reason) => set({ pendingBid: false, rejection: { reason, at: Date.now() } }),
   showOverlay: (o) => set({ overlay: { ...o, key: ++seq } }),
   clearOverlay: () => set({ overlay: null }),
   pushFeed: (item) =>
     set((st) => ({ feed: [{ ...item, id: `f${++seq}`, at: Date.now() }, ...st.feed].slice(0, 60) })),
-  reset: () => set({ snap: null, connected: false, pendingBid: false, rejection: null, overlay: null, feed: [] }),
+  reset: () => set({ snap: null, connected: false, polling: false, pendingBid: false, rejection: null, overlay: null, feed: [] }),
 }));
 
 export const serverNow = () => Date.now() + useAuction.getState().offset;

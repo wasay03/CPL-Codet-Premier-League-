@@ -6,6 +6,7 @@ import { useSettings } from "../api/hooks";
 import type { Settings, Tier } from "../api/types";
 import { Button, Card, Field, Input, Modal, Page, SectionTitle, TierBadge } from "../components/ui";
 import { toast } from "../lib/toast";
+import { refreshSnapshot } from "../realtime/poll";
 import { Loading } from "./Teams";
 
 type Form = Omit<Settings, "locked"> & { tiers: Tier[] };
@@ -156,6 +157,7 @@ function ResetModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const reset = async () => {
     try {
       await api.post("/auction/reset", { confirm: text });
+      await refreshSnapshot();
       toast.ok("Auction reset");
       setText("");
       onClose();

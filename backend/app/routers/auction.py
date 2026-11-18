@@ -3,23 +3,24 @@ import io
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 
 from ..auth import AdminUser, CurrentUser, OwnerUser, Session
 from ..config import get_settings
-from ..engine.snapshot import history, load_tiers
+from ..engine.snapshot import build_snapshot, history, load_tiers
 from ..models import AuditLog, Player, Team, User
 from ..schemas import BidIn, ExtendIn, NextIn, NominationsIn, ResetIn
-from .deps import Engine
+from .deps import Engine, tick
 
-router = APIRouter(prefix="", tags=["auction"])
+router = APIRouter(tags=["auction"], dependencies=[Depends(tick)])
 
 
 @router.get("/auction/state")
-async def state(_: CurrentUser, engine: Engine) -> dict:
-    return await engine.snapshot()
+async def state(_: CurrentUser, session: Session, engine: Engine) -> dict:
+    # Polled every second by clients without a WebSocket, so build it on the request's connection.
+    return await build_snapshot(session, set(engine.ws.online_user_ids))
 
 
 @router.post("/auction/start")

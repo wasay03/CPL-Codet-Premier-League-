@@ -33,6 +33,7 @@ export function Layout() {
   const me = useSession((s) => s.me);
   const logout = useSession((s) => s.logout);
   const connected = useAuction((s) => s.connected);
+  const polling = useAuction((s) => s.polling);
   const status = useAuction((s) => s.snap?.status);
   const [open, setOpen] = useState(false);
   const links = me?.role === "admin" ? [...LINKS, ...ADMIN_LINKS] : LINKS;
@@ -74,8 +75,11 @@ export function Layout() {
                 {STATUS_LABEL[status]}
               </span>
             )}
-            <span title={connected ? "Connected" : "Reconnecting…"} className={connected ? "text-emerald-400" : "text-rose-400"}>
-              {connected ? <Wifi size={16} /> : <WifiOff size={16} />}
+            <span
+              title={connected ? "Live (WebSocket)" : polling ? "Live (updates every second)" : "Reconnecting…"}
+              className={connected ? "text-emerald-400" : polling ? "text-amber-400" : "text-rose-400"}
+            >
+              {connected || polling ? <Wifi size={16} /> : <WifiOff size={16} />}
             </span>
             <NavLink to="/profile" className="flex items-center gap-2 rounded-full pr-1 hover:bg-ink-800">
               <Avatar name={me?.display_name ?? "?"} imageId={me?.avatar_image_id} size={30} />

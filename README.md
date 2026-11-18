@@ -106,6 +106,19 @@ The backend suite covers:
 | `ADMIN_PASSWORD`, `OWNER1_PASSWORD`, `OWNER2_PASSWORD`, `OWNER3_PASSWORD` | First-login passwords, used when the seed migration runs |
 | `TIMEZONE` | `Asia/Karachi`, used for the CSV export timestamp |
 
+## Deploying on Vercel + Supabase
+
+Vercel can't hold WebSockets or run background timers, so the app falls back automatically:
+
+- **Polling.** When the socket can't connect, each browser fetches `/api/auction/state` about once a second. The room, feed and SOLD / UNSOLD overlays work the same way, about a second behind.
+- **Lots close on the next request.** Every auction request first closes the current lot if its clock has run out. While anyone has the room open, polling makes that happen within about a second.
+
+Setup:
+
+1. **Database.** In Supabase, copy the **Session pooler** URI from **Connect** (not Direct, not Transaction pooler). Run `alembic upgrade head` once from your machine with that `DATABASE_URL` and the four `*_PASSWORD` variables set. Then enable row-level security on the `public` tables so Supabase's REST API can't read them. The app connects as the table owner, so RLS doesn't affect it.
+2. **Backend project** (root `backend/`). Set `DATABASE_URL`, `DB_NULLPOOL=true`, `JWT_SECRET` and `TIMEZONE`. `TZ` is reserved on Vercel.
+3. **Frontend project** (root `web/`). [web/vercel.json](web/vercel.json) forwards `/api/*` to the backend's domain. Change it if your backend URL differs.
+
 ## Notes and small departures from the plan
 
 - **A bid never shortens the clock.** A bid sets the deadline to *at least* `reset_timer_s` from now. An early bid on a 30-second opening clock doesn't cut it to 15.

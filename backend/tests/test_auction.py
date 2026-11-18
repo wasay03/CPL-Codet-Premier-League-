@@ -264,3 +264,32 @@ async def test_extend(client, auth):
     after = (await state(client, auth))["lot"]["ends_at"]
     assert after - before >= 9900
     _ = now_utc() + timedelta(seconds=1)
+
+
+async def test_expired_lot_closes_on_next_request_without_timer(client, auth, eng):
+    """Serverless hosts kill background timers; any auction request must close an expired lot."""
+    await set_rules(client, auth, opening_timer_s=1, reset_timer_s=1)
+    await admin_post(client, auth, "start")
+    lot = await admin_post(client, auth, "next")
+    await bid(client, auth, "owner2", lot["lot_id"], 200)
+    eng.timer.cancel_all()
+    await asyncio.sleep(1.3)
+    assert (await sql("select status from lots where id = :i", i=lot["lot_id"])) == [("open",)]
+    snap = await state(client, auth)  # plain poll
+    assert snap["lot"] is None
+    assert (await sql("select status, high_team_id from lots where id = :i", i=lot["lot_id"])) == [("sold", 2)]
+    # The admin can open the next lot straight away.
+    assert (await client.post("/api/auction/next", headers=auth["admin"])).status_code == 200
+
+
+async def test_engine_created_lazily_without_lifespan(fresh_data):
+    """Some serverless runtimes skip the ASGI lifespan; routes must still get an engine."""
+    import httpx
+
+    from app.main import app
+
+    app.state.__dict__.get("_state", {}).pop("engine", None)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post("/api/auth/login", json={"username": "admin", "password": "cpl-admin"})
+        h = {"Authorization": f"Bearer {r.json()['token']}"}
+        assert (await c.get("/api/auction/state", headers=h)).status_code == 200

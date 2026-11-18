@@ -6,6 +6,7 @@ import type { Snapshot } from "../api/types";
 import { useSession } from "../lib/session";
 import { toast } from "../lib/toast";
 import { useAuction } from "../realtime/auctionStore";
+import { refreshSnapshot } from "../realtime/poll";
 import { Avatar, Button, Card, Empty, TierBadge } from "./ui";
 
 type Tab = "queue" | "pool" | "feed";
@@ -20,6 +21,7 @@ export function SidePanels({ snap }: { snap: Snapshot }) {
   const pick = async (id: number) => {
     try {
       await api.post("/auction/next", { mode: "pick", player_id: id });
+      await refreshSnapshot();
     } catch (e) {
       toast.error(e);
     }
@@ -106,6 +108,7 @@ function PoolPanel({ snap }: { snap: Snapshot }) {
   const save = async () => {
     try {
       await api.post("/auction/nominations", { player_ids: chosen });
+      await refreshSnapshot();
       toast.ok("Nominations saved");
       setSel(null);
     } catch (e) {

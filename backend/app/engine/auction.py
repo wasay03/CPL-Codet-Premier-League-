@@ -114,6 +114,28 @@ class AuctionEngine:
 
     # ------------------------------------------------------------------ lifecycle
 
+    async def tick(self, session: AsyncSession | None = None) -> None:
+        """Close the current lot if its deadline has passed.
+
+        On a long-running server the lot timer does this. On serverless hosts (Vercel) background
+        tasks don't survive between requests, so every auction request calls this first instead.
+        """
+        query = (
+            select(AuctionState.status, Lot.id, Lot.status, Lot.ends_at)
+            .join(Lot, Lot.id == AuctionState.current_lot_id)
+            .where(AuctionState.id == 1)
+        )
+        if session is not None:  # reuse the request's connection: one connection per request
+            row = (await session.execute(query)).first()
+        else:
+            async with self.sm() as s:
+                row = (await s.execute(query)).first()
+        if row is None:
+            return
+        state_status, lot_id, lot_status, ends_at = row
+        if state_status in LIVE and lot_status == "open" and ends_at and ends_at <= now_utc():
+            await self.close_lot(lot_id, force=False)
+
     async def recover(self) -> None:
         """On startup, resume the timer of an open lot (or close it at once if its deadline passed)."""
         async with self.sm() as s:

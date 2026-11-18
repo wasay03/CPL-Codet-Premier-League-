@@ -12,5 +12,7 @@ export default defineConfig({
       "/ws": { target: backend.replace(/^http/, "ws"), ws: true },
     },
   },
+  // `vite preview` proxies only /api, which mimics a host without WebSockets (polling mode).
+  preview: { port: 4173, proxy: { "/api": backend } },
   build: { outDir: "dist", sourcemap: false },
 });

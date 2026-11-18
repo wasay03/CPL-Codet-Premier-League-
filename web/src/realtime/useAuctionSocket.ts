@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import type { Snapshot } from "../api/types";
 import { useSession } from "../lib/session";
 import { useAuction } from "./auctionStore";
+import { POLL_MS, refreshSnapshot, setPollQueryClient } from "./poll";
 
 type Msg = { type: string; version: number; data: any };
 
@@ -136,4 +137,16 @@ export function useAuctionSocket() {
       store().reset();
     };
   }, [token, mustChange, logout, qc]);
+
+  // Polling fallback: runs only while the socket is down (always, on hosts without WebSockets).
+  useEffect(() => {
+    if (!token || mustChange) return;
+    setPollQueryClient(qc);
+    const tick = () => {
+      if (document.visibilityState === "visible") void refreshSnapshot();
+    };
+    tick(); // first paint shouldn't wait on a socket that may never connect
+    const id = window.setInterval(tick, POLL_MS);
+    return () => window.clearInterval(id);
+  }, [token, mustChange, qc]);
 }

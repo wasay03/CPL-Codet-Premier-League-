@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "../api/client";
 import type { Snapshot } from "../api/types";
 import { toast } from "../lib/toast";
+import { refreshSnapshot } from "../realtime/poll";
 import { Button } from "./ui";
 
 export function ControlBar({ snap }: { snap: Snapshot }) {
@@ -12,6 +13,7 @@ export function ControlBar({ snap }: { snap: Snapshot }) {
     setBusy(key);
     try {
       await api.post(`/auction/${path}`, body);
+      await refreshSnapshot();
     } catch (e) {
       toast.error(e);
     } finally {

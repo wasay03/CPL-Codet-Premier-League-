@@ -7,6 +7,7 @@ import { bidBlockReason, REJECTION_TEXT } from "../lib/rules";
 import { useSession } from "../lib/session";
 import { toast } from "../lib/toast";
 import { useAuction } from "../realtime/auctionStore";
+import { refreshSnapshot } from "../realtime/poll";
 import { sendBid } from "../realtime/useAuctionSocket";
 import { Spinner } from "./ui";
 
@@ -37,8 +38,10 @@ export function BidPanel({ snap, msLeft }: { snap: Snapshot; msLeft: number }) {
       setPending(true);
       try {
         await api.post("/auction/bid", { lot_id: lot.id, amount: lot.next_bid });
+        await refreshSnapshot();
       } catch (e) {
         toast.error(REJECTION_TEXT[(e as Error).message] ?? e);
+        void refreshSnapshot(); // show the newer price that beat us
       } finally {
         setPending(false);
       }

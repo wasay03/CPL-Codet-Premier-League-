@@ -7,11 +7,10 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
-from .db import SessionLocal
-from .engine.auction import AuctionEngine, AuctionError
+from .engine.auction import AuctionError
 from .routers import auction, auth, images, me, players, settings, teams, users
+from .routers.deps import engine_for
 from .ws import endpoint as ws_endpoint
-from .ws.manager import ConnectionManager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -20,9 +19,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 async def lifespan(app: FastAPI):
     if get_settings().jwt_secret.startswith("dev-secret"):
         logging.getLogger("cpl").warning("JWT_SECRET is the development default; set it in production")
-    engine = AuctionEngine(SessionLocal, ConnectionManager())
-    engine.bid_rate_per_sec = get_settings().bid_rate_per_sec
-    app.state.engine = engine
+    engine = engine_for(app)
     await engine.recover()
     yield
     await engine.shutdown()
