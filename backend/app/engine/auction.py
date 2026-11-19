@@ -308,25 +308,32 @@ class AuctionEngine:
                 settings = await self._settings(s)
                 tiers = await load_tiers(s)
 
+                # Category by category: every mode draws only from the current category.
+                queued = (await s.scalars(select(Player).where(Player.status == "queued"))).all()
+                if not queued:
+                    raise AuctionError("QUEUE_EMPTY", self._queue_empty_message(state, settings))
+                category = rules.current_category(
+                    (p.current_tier_id for p in queued), [tier_rule(t) for t in tiers]
+                )
+                assert category is not None
+                candidates = sorted(
+                    (p for p in queued if p.current_tier_id == category.id), key=lambda p: (p.queue_pos, p.id)
+                )
                 if mode == "pick":
                     if player_id is None:
                         raise AuctionError("PLAYER_REQUIRED", "Pick a player", 422)
-                    player = (
-                        await s.execute(select(Player).where(Player.id == player_id).with_for_update())
-                    ).scalar_one_or_none()
-                    if not player or player.status != "queued":
+                    player = next((p for p in queued if p.id == player_id), None)
+                    if player is None:
                         raise AuctionError("NOT_QUEUED", "That player is not waiting in a queue")
+                    if player.current_tier_id != category.id:
+                        raise AuctionError(
+                            "OTHER_CATEGORY",
+                            f"{category.name} is still running. Pick a player from the {category.name} queue.",
+                        )
+                elif mode == "random":
+                    player = random.choice(candidates)
                 else:
-                    tier_rank = {t.id: t.rank for t in tiers}
-                    queued = (await s.scalars(select(Player).where(Player.status == "queued"))).all()
-                    if not queued:
-                        raise AuctionError("QUEUE_EMPTY", self._queue_empty_message(state, settings))
-                    top_rank = min(tier_rank[p.current_tier_id] for p in queued)
-                    candidates = sorted(
-                        (p for p in queued if tier_rank[p.current_tier_id] == top_rank),
-                        key=lambda p: (p.queue_pos, p.id),
-                    )
-                    player = random.choice(candidates) if mode == "random" else candidates[0]
+                    player = candidates[0]
 
                 tier = next(t for t in tiers if t.id == player.current_tier_id)
                 ends_at = now_utc() + timedelta(seconds=settings.opening_timer_s)

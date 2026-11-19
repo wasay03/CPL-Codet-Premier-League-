@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { Eye, Gavel, Pause, Trophy, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BidPanel } from "../components/BidPanel";
+import { CategoryStepper } from "../components/CategoryStepper";
 import { ControlBar } from "../components/ControlBar";
 import { OnTheBlock } from "../components/OnTheBlock";
 import { SidePanels } from "../components/SidePanels";
@@ -35,6 +36,11 @@ export function RoomPage() {
       {isAdmin && (
         <div className="mb-4">
           <ControlBar snap={snap} />
+        </div>
+      )}
+      {snap.status !== "finished" && (
+        <div className="mb-4">
+          <CategoryStepper snap={snap} />
         </div>
       )}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">

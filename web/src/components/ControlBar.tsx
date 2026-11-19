@@ -27,6 +27,7 @@ export function ControlBar({ snap }: { snap: Snapshot }) {
   const mainDone = s === "running" && snap.queued_count === 0 && !hasLot;
   const canAccelerate = mainDone && snap.settings.accelerated_enabled && snap.unsold_pool.length > 0;
   const nominationCount = new Set(Object.values(snap.nominations).flat()).size;
+  const category = snap.tiers.find((t) => t.id === snap.active_tier_id);
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface p-2.5 shadow-card">
@@ -54,7 +55,7 @@ export function ControlBar({ snap }: { snap: Snapshot }) {
             <SkipForward size={16} /> Next player
           </Button>
           <Button variant="outline" onClick={() => run("next", "next", { mode: "random" })} disabled={!!busy}>
-            <Shuffle size={16} /> Random
+            <Shuffle size={16} /> Random{category ? ` from ${category.name}` : ""}
           </Button>
         </>
       )}

@@ -57,11 +57,20 @@ export function SidePanels({ snap }: { snap: Snapshot }) {
             {snap.tiers.map((t) => {
               const list = snap.queues[String(t.id)] ?? [];
               if (!list.length) return null;
+              const current = t.id === snap.active_tier_id;
               return (
-                <div key={t.id}>
+                <div key={t.id} className={clsx(!current && "opacity-60")}>
                   <div className="mb-2 flex items-center gap-2">
                     <TierBadge tier={t} />
                     <span className="text-xs text-muted">{list.length} waiting · base {pkr(t.base_price)}</span>
+                    <span
+                      className={clsx(
+                        "ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                        current ? "bg-brand text-white" : "bg-well text-muted",
+                      )}
+                    >
+                      {current ? "Now" : "Later"}
+                    </span>
                   </div>
                   <ul className="space-y-1">
                     {list.map((p) => (
@@ -69,7 +78,7 @@ export function SidePanels({ snap }: { snap: Snapshot }) {
                         <Avatar name={p.name} imageId={p.photo_image_id} size={28} />
                         <span className="flex-1 truncate text-sm font-medium">{p.name}</span>
                         {p.drop_count > 0 && <span className="text-[10px] text-muted">↓{p.drop_count}</span>}
-                        {isAdmin && live && !snap.lot && (
+                        {isAdmin && live && !snap.lot && current && (
                           <button
                             onClick={() => pick(p.id)}
                             className="rounded-lg p-1.5 text-muted opacity-0 transition hover:bg-brand hover:text-white group-hover:opacity-100 max-sm:opacity-100"

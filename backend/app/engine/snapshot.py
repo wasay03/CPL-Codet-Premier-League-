@@ -236,6 +236,12 @@ async def build_snapshot(session: AsyncSession, online: set[int] | None = None) 
         elif p.status == "unsold_pool":
             pool.append(player_dict(p))
 
+    # The category being auctioned: the open lot's tier, else the highest tier with players waiting.
+    waiting = rules.current_category(
+        (int(k) for k, v in queues.items() if v), [tier_rule(t) for t in tiers]
+    )
+    active_tier_id = lot["tier_id"] if lot else (waiting.id if waiting else None)
+
     noms = (await session.scalars(select(Nomination).order_by(Nomination.created_at))).all()
     nominations: dict[str, list[int]] = defaultdict(list)
     for n in noms:
@@ -247,6 +253,7 @@ async def build_snapshot(session: AsyncSession, online: set[int] | None = None) 
         "status": state.status,
         "resume_status": state.resume_status,
         "current_tier_id": state.current_tier_id,
+        "active_tier_id": active_tier_id,
         "settings": settings_dict(settings),
         "tiers": [tier_dict(t) for t in tiers],
         "teams": await build_teams(session, settings, tiers, online),

@@ -131,6 +131,8 @@ export interface Snapshot {
   status: AuctionStatus;
   resume_status: AuctionStatus | null;
   current_tier_id: number | null;
+  /** The category being auctioned: the open lot's tier, else the highest tier with players waiting. */
+  active_tier_id: number | null;
   settings: Settings;
   tiers: Tier[];
   teams: Team[];

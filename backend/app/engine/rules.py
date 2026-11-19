@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 
 
@@ -155,3 +155,14 @@ def drop_target(
         if t.id not in exhausted:
             return t, steps
     return None, len(lower)
+
+
+def current_category(queued_tier_ids: Iterable[int], tiers: Sequence[TierRule]) -> TierRule | None:
+    """The category being auctioned: the highest-ranked tier that still has players waiting.
+
+    The auction runs category by category, so Next, Random and hand-picks all draw from this tier
+    only. Unsold players drop into a lower tier and wait their turn there.
+    """
+    waiting = set(queued_tier_ids)
+    open_tiers = sorted((t for t in tiers if t.id in waiting), key=lambda t: t.rank)
+    return open_tiers[0] if open_tiers else None

@@ -144,6 +144,8 @@ async def test_unsold_drops_a_tier(client, auth):
 
 
 async def test_drop_cascade_to_pool(client, auth):
+    # One player, so each tier it drops into is the current category straight away.
+    await sql("delete from players where id not in (select id from players order by id limit 1)")
     await admin_post(client, auth, "start")
     target = (await admin_post(client, auth, "next"))["player"]["id"]
     await admin_post(client, auth, "hammer")
@@ -154,6 +156,34 @@ async def test_drop_cascade_to_pool(client, auth):
     rows = await sql("select status, drop_count from players where id = :i", i=target)
     assert rows == [("unsold_pool", 4)]
 
+
+async def test_random_stays_in_current_category(client, auth):
+    await admin_post(client, auth, "start")
+    snap = await state(client, auth)
+    platinum = {p["id"] for p in snap["queues"]["1"]}
+    assert snap["active_tier_id"] == 1
+    picked = []
+    for _ in range(len(platinum)):
+        lot = await admin_post(client, auth, "next", mode="random")
+        assert lot["tier_id"] == 1  # never Diamond, even with unsold Platinum players now waiting there
+        assert (await state(client, auth))["active_tier_id"] == 1
+        picked.append(lot["player"]["id"])
+        await admin_post(client, auth, "hammer")  # unsold -> drops to Diamond
+    assert set(picked) == platinum
+    # Platinum is done: the auction moves on to Diamond, dropped players included.
+    assert (await state(client, auth))["active_tier_id"] == 2
+    assert (await admin_post(client, auth, "next", mode="random"))["tier_id"] == 2
+
+
+async def test_pick_only_from_current_category(client, auth):
+    await admin_post(client, auth, "start")
+    snap = await state(client, auth)
+    diamond_player = snap["queues"]["2"][0]["id"]
+    platinum_player = snap["queues"]["1"][-1]["id"]
+    r = await client.post("/api/auction/next", json={"mode": "pick", "player_id": diamond_player}, headers=auth["admin"])
+    assert r.status_code == 409 and r.json()["code"] == "OTHER_CATEGORY"
+    lot = await admin_post(client, auth, "next", mode="pick", player_id=platinum_player)
+    assert lot["player"]["id"] == platinum_player
 
 
 async def set_tier(client, auth, tier_id, **changes):
