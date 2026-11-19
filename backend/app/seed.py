@@ -82,6 +82,7 @@ def seed(conn: Connection) -> None:
         ("owner1", "Owner 1", "owner", team_ids[0], s.owner1_password),
         ("owner2", "Owner 2", "owner", team_ids[1], s.owner2_password),
         ("owner3", "Owner 3", "owner", team_ids[2], s.owner3_password),
+        ("viewer", "Viewer", "viewer", None, s.viewer_password),
     ]
     for username, display, role, team_id, pw in users:
         conn.execute(
@@ -91,7 +92,8 @@ def seed(conn: Connection) -> None:
                 role=role,
                 team_id=team_id,
                 password_hash=hash_password(pw),
-                must_change_password=s.require_password_change,
+                # The viewer login is shared, so it is never forced to change its password.
+                must_change_password=s.require_password_change and role != "viewer",
             )
         )
 

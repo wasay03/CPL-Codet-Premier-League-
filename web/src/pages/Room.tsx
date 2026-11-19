@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { Gavel, Pause, Trophy, Zap } from "lucide-react";
+import { Eye, Gavel, Pause, Trophy, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BidPanel } from "../components/BidPanel";
 import { ControlBar } from "../components/ControlBar";
@@ -28,6 +28,7 @@ export function RoomPage() {
 
   const isAdmin = me?.role === "admin";
   const isOwner = me?.role === "owner";
+  const isViewer = me?.role === "viewer";
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-6 pt-6 sm:px-6">
@@ -38,8 +39,9 @@ export function RoomPage() {
       )}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-4">
-          {snap.lot ? <OnTheBlock snap={snap} msLeft={msLeft} /> : <IdleCard snap={snap} isAdmin={isAdmin} />}
+          {snap.lot ? <OnTheBlock snap={snap} msLeft={msLeft} /> : <IdleCard snap={snap} isAdmin={isAdmin} isViewer={isViewer} />}
           {isOwner && <BidPanel snap={snap} msLeft={msLeft} />}
+          {isViewer && <SpectatorBar />}
           {snap.lot && snap.lot.bids.length > 0 && <BidLadder snap={snap} />}
           <div className="hidden lg:block">
             <SidePanels snap={snap} />
@@ -96,7 +98,21 @@ function BidLadder({ snap }: { snap: Snapshot }) {
   );
 }
 
-function IdleCard({ snap, isAdmin }: { snap: Snapshot; isAdmin: boolean }) {
+/** Shown to the viewer login where an owner would see the bid button. */
+function SpectatorBar() {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-fg-2 shadow-card">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand-ink">
+        <Eye size={18} />
+      </span>
+      <span>
+        <b className="text-fg">You're watching live.</b> Bids, sales and purses update here as they happen. Only team owners can bid.
+      </span>
+    </div>
+  );
+}
+
+function IdleCard({ snap, isAdmin, isViewer }: { snap: Snapshot; isAdmin: boolean; isViewer: boolean }) {
   const nextTier = snap.tiers.find((t) => (snap.queues[String(t.id)] ?? []).length > 0);
   const mainDone = snap.status === "running" && snap.queued_count === 0;
 
@@ -107,7 +123,11 @@ function IdleCard({ snap, isAdmin }: { snap: Snapshot; isAdmin: boolean }) {
   if (snap.status === "not_started") {
     icon = null;
     title = "The room is open";
-    body = isAdmin ? "Check the rules and players, then press Start auction." : "Waiting for the auctioneer to start. Get your strategy ready.";
+    body = isAdmin
+      ? "Check the rules and players, then press Start auction."
+      : isViewer
+        ? "Waiting for the auctioneer to start. Browse the players and teams in the meantime."
+        : "Waiting for the auctioneer to start. Get your strategy ready.";
   } else if (snap.status === "finished") {
     icon = <Trophy size={34} />;
     title = "Auction complete";
@@ -127,7 +147,9 @@ function IdleCard({ snap, isAdmin }: { snap: Snapshot; isAdmin: boolean }) {
       snap.settings.accelerated_enabled && snap.unsold_pool.length
         ? isAdmin
           ? "Owners can now nominate unsold players. Start the accelerated round when they're done, or end the auction."
-          : "Nominate players from the Unsold pool to bring them back in the accelerated round."
+          : isViewer
+            ? "Owners are nominating unsold players to bring back in the accelerated round."
+            : "Nominate players from the Unsold pool to bring them back in the accelerated round."
         : "No players left to auction.";
   } else {
     title = "Next player coming up";

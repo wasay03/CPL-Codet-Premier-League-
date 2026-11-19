@@ -47,7 +47,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(64), unique=True)
     password_hash: Mapped[str] = mapped_column(String(128))
-    role: Mapped[str] = mapped_column(String(16))  # admin | owner
+    role: Mapped[str] = mapped_column(String(16))  # admin | owner | viewer
     display_name: Mapped[str] = mapped_column(String(64))
     avatar_image_id: Mapped[int | None] = mapped_column(ForeignKey("images.id", ondelete="SET NULL"))
     team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id", ondelete="SET NULL"))

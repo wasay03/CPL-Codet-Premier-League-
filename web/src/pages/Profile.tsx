@@ -1,4 +1,4 @@
-import { KeyRound } from "lucide-react";
+import { Eye, KeyRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { Me } from "../api/types";
@@ -10,6 +10,7 @@ import { useAuction } from "../realtime/auctionStore";
 export function ProfilePage() {
   const me = useSession((s) => s.me)!;
   const mustChange = me.must_change_password;
+  if (me.role === "viewer") return <ViewerProfile />;
   return (
     <div className="mx-auto max-w-2xl space-y-5 px-4 py-8 sm:px-6">
       <h1 className="text-3xl font-extrabold tracking-tight">Profile</h1>
@@ -22,6 +23,27 @@ export function ProfilePage() {
       <PasswordCard />
       {!mustChange && <ProfileCard />}
       {!mustChange && me.team_id && <TeamCardForm teamId={me.team_id} />}
+    </div>
+  );
+}
+
+function ViewerProfile() {
+  const me = useSession((s) => s.me)!;
+  return (
+    <div className="mx-auto max-w-2xl space-y-5 px-4 py-8 sm:px-6">
+      <h1 className="text-3xl font-extrabold tracking-tight">Profile</h1>
+      <Card className="flex items-center gap-4 p-5">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand-ink">
+          <Eye size={26} />
+        </span>
+        <div>
+          <div className="font-bold">{me.display_name} · viewer login</div>
+          <p className="mt-1 text-sm text-muted">
+            This is a shared, read-only account for watching the auction. You can see every player, team and live bid, but you
+            can't bid or change anything. Only the admin can change this login's name or password.
+          </p>
+        </div>
+      </Card>
     </div>
   );
 }

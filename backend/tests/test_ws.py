@@ -57,9 +57,11 @@ async def test_live_bid_round_trip(live_server):
     admin = {"Authorization": f"Bearer {token(base, 'admin')}"}
     t1, t2 = token(base, "owner1"), token(base, "owner2")
 
+    tv = token(base, "viewer")
     async with (
         websockets.connect(f"ws://{base}/ws?token={t1}") as ws1,
         websockets.connect(f"ws://{base}/ws?token={t2}") as ws2,
+        websockets.connect(f"ws://{base}/ws?token={tv}") as wsv,
     ):
         first = await recv_until(ws1, "state")
         assert first["data"]["status"] == "not_started"
@@ -77,6 +79,13 @@ async def test_live_bid_round_trip(live_server):
         await ws1.send(json.dumps({"type": "bid", "data": {"lot_id": lot_id, "amount": 200}}))
         placed = await recv_until(ws2, "bid_placed")
         assert placed["data"]["team_id"] == 1 and placed["data"]["next_bid"] == 220
+
+        # The viewer watches the same live events but cannot bid over the socket.
+        seen = await recv_until(wsv, "bid_placed")
+        assert seen["data"]["amount"] == 200
+        await wsv.send(json.dumps({"type": "bid", "data": {"lot_id": lot_id, "amount": 220}}))
+        rejected = await recv_until(wsv, "bid_rejected")
+        assert rejected["data"]["reason"] == "NOT_OWNER"
 
         # Stale amount goes back to the bidder only.
         await ws2.send(json.dumps({"type": "bid", "data": {"lot_id": lot_id, "amount": 200}}))

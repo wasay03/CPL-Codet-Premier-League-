@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { CheckCircle2, Info, LogOut, Menu, Moon, Sun, Wifi, WifiOff, X, XCircle } from "lucide-react";
+import { CheckCircle2, Eye, Info, LogOut, Menu, Moon, Sun, Wifi, WifiOff, X, XCircle } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useSession } from "../lib/session";
@@ -108,6 +108,14 @@ export function Layout() {
                   </span>
                 )}
                 {STATUS_LABEL[status]}
+              </span>
+            )}
+            {me?.role === "viewer" && (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-ink"
+                title="Read-only viewer login"
+              >
+                <Eye size={13} /> <span className="hidden sm:inline">Viewing</span>
               </span>
             )}
             <span

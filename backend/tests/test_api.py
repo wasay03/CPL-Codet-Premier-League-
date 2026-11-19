@@ -136,3 +136,42 @@ async def test_image_upload_roundtrip(client, auth):
     assert max(Image.open(io.BytesIO(img.content)).size) == 512
     r = await client.post("/api/me/avatar", files={"file": ("a.txt", b"hello", "text/plain")}, headers=auth["owner1"])
     assert r.status_code == 415
+
+
+async def test_viewer_sees_everything_but_changes_nothing(client, auth):
+    v = auth["viewer"]
+    me = (await client.get("/api/me", headers=v)).json()
+    assert me["role"] == "viewer" and me["team_id"] is None and not me["must_change_password"]
+
+    await client.post("/api/auction/start", headers=auth["admin"])
+    lot = (await client.post("/api/auction/next", json={"mode": "order"}, headers=auth["admin"])).json()
+    for path in ("/api/auction/state", "/api/players", "/api/teams", "/api/teams/1", "/api/settings",
+                 "/api/auction/history"):
+        assert (await client.get(path, headers=v)).status_code == 200, path
+    assert (await client.get("/api/auction/state", headers=v)).json()["lot"]["id"] == lot["lot_id"]
+
+    r = await client.post("/api/auction/bid", json={"lot_id": lot["lot_id"], "amount": 200}, headers=v)
+    assert r.status_code == 409 and r.json()["detail"] == "NOT_OWNER"
+    for method, path, body in [
+        ("post", "/api/auction/hammer", None),
+        ("post", "/api/auction/pause", None),
+        ("put", "/api/settings", None),
+        ("get", "/api/users", None),
+        ("get", "/api/audit", None),
+        ("get", "/api/export/results.csv", None),
+        ("delete", "/api/players/1", None),
+        ("post", "/api/auction/nominations", {"player_ids": []}),
+        ("patch", "/api/teams/1", {"name": "Hijack"}),
+        ("patch", "/api/me", {"display_name": "Someone"}),
+        ("post", "/api/me/password", {"current_password": "cpl-viewer", "new_password": "lockout1"}),
+    ]:
+        r = await client.request(method, path, json=body, headers=v)
+        assert r.status_code == 403, (path, r.status_code)
+
+
+async def test_admin_reset_keeps_viewer_password_unforced(client, auth):
+    viewer_id = (await sql("select id from users where username = 'viewer'"))[0][0]
+    r = await client.patch(f"/api/users/{viewer_id}", json={"password": "spectate1"}, headers=auth["admin"])
+    assert r.status_code == 200 and r.json()["must_change_password"] is False
+    r = await client.post("/api/auth/login", json={"username": "viewer", "password": "spectate1"})
+    assert r.status_code == 200

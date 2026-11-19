@@ -35,7 +35,8 @@ async def patch_user(user_id: int, body: UserPatch, admin: AdminUser, session: S
         changes["display_name"] = u.display_name
     if body.password:
         u.password_hash = hash_password(body.password)
-        u.must_change_password = True
+        # Personal logins must pick their own password; the shared viewer login keeps the admin's.
+        u.must_change_password = u.role != "viewer"
         changes["password_reset"] = True
     if body.clear_team or body.team_id is not None:
         if u.role != "owner":

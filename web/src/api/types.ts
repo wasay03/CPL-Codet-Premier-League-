@@ -1,4 +1,4 @@
-export type Role = "admin" | "owner";
+export type Role = "admin" | "owner" | "viewer";
 export type AuctionStatus = "not_started" | "running" | "paused" | "accelerated" | "finished";
 export type PlayerStatus = "queued" | "on_block" | "sold" | "unsold_pool";
 

@@ -20,7 +20,10 @@ from app.seed import seed  # noqa: E402
 
 BACKEND = Path(__file__).resolve().parents[1]
 TABLES = "bids, nominations, audit_log, lots, players, users, auction_state, settings, teams, tiers, images"
-PASSWORDS = {"admin": "cpl-admin", "owner1": "cpl-owner1", "owner2": "cpl-owner2", "owner3": "cpl-owner3"}
+PASSWORDS = {
+    "admin": "cpl-admin", "owner1": "cpl-owner1", "owner2": "cpl-owner2", "owner3": "cpl-owner3",
+    "viewer": "cpl-viewer",
+}
 
 
 @pytest.fixture(scope="session")

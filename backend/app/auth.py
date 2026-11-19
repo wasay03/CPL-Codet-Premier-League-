@@ -80,8 +80,16 @@ async def require_owner(user: Annotated[User, Depends(current_user)]) -> User:
     return user
 
 
+async def require_self_editor(user: Annotated[User, Depends(current_user_pw_ok)]) -> User:
+    """The viewer login is shared by spectators, so only the admin may change its name, photo or password."""
+    if user.role == "viewer":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "The viewer account is managed by the admin")
+    return user
+
+
 CurrentUser = Annotated[User, Depends(current_user)]
 CurrentUserPwOk = Annotated[User, Depends(current_user_pw_ok)]
 AdminUser = Annotated[User, Depends(require_admin)]
 OwnerUser = Annotated[User, Depends(require_owner)]
+SelfEditor = Annotated[User, Depends(require_self_editor)]
 Session = Annotated[AsyncSession, Depends(get_session)]

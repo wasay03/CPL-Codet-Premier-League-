@@ -91,7 +91,14 @@ function EditUser({ user, onClose }: { user: Me; onClose: () => void }) {
             </Select>
           </Field>
         )}
-        <Field label="Reset password" hint="Leave blank to keep it. They'll be asked to change it at next login.">
+        <Field
+          label="Reset password"
+          hint={
+            user.role === "viewer"
+              ? "Leave blank to keep it. This is the shared viewer login, so the new password works straight away; share it with your spectators."
+              : "Leave blank to keep it. They'll be asked to change it at next login."
+          }
+        >
           <Input type="password" autoComplete="new-password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
         <div className="flex justify-end gap-2 pt-2">

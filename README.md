@@ -72,6 +72,8 @@ npm run dev
 
 Seeded logins are `admin`, `owner1`, `owner2` and `owner3`. Their passwords come from `ADMIN_PASSWORD` and `OWNER1..3_PASSWORD`, and default to `cpl-admin`, `cpl-owner1` and so on. Every account must change its password on first login, unless `REQUIRE_PASSWORD_CHANGE=false`.
 
+There is also a shared, read-only `viewer` login for spectators. It sees the live room, players, teams, history and results, but can't bid, nominate or change anything (including its own name or password). Its password comes from `VIEWER_PASSWORD` (default `cpl-viewer`), it is never forced to change it, and the admin can reset it on the Users page.
+
 ## Tests
 
 ```bash

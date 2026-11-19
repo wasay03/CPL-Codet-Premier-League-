@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     owner1_password: str = "cpl-owner1"
     owner2_password: str = "cpl-owner2"
     owner3_password: str = "cpl-owner3"
+    viewer_password: str = "cpl-viewer"
 
     require_password_change: bool = True
     db_nullpool: bool = False
