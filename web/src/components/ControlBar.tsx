@@ -29,8 +29,10 @@ export function ControlBar({ snap }: { snap: Snapshot }) {
   const nominationCount = new Set(Object.values(snap.nominations).flat()).size;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-gavel/25 bg-gavel/[.04] p-2.5">
-      <span className="px-2 font-display text-xs font-bold uppercase tracking-[.2em] text-gavel">Auctioneer</span>
+    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface p-2.5 shadow-card">
+      <span className="inline-flex items-center gap-1.5 rounded-xl bg-brand-soft px-3 py-2 text-xs font-bold uppercase tracking-[.14em] text-brand-ink">
+        <Gavel size={14} /> Auctioneer
+      </span>
       {s === "not_started" && (
         <Button variant="primary" onClick={() => run("start", "start", undefined, "Start the auction? The rules lock once it begins.")} disabled={!!busy}>
           <Play size={16} /> Start auction

@@ -2,13 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens: RGB channels so Tailwind's /alpha modifiers work. */
 :root {
+  color-scheme: light;
+  --canvas: 248 246 253;
+  --surface: 255 255 255;
+  --well: 244 241 251;
+  --well-2: 232 226 246;
+  --line: 234 229 244;
+  --line-strong: 214 206 234;
+  --fg: 24 16 51;
+  --fg-2: 72 63 102;
+  --muted: 117 108 146;
+  --faint: 165 157 188;
+  --brand: 109 40 217;
+  --brand-strong: 91 33 182;
+  --brand-soft: 240 235 254;
+  --brand-ink: 91 33 182;
+  --brand-deep: 30 12 72;
+  --gold: 227 162 26;
+  --gold-ink: 176 112 8;
+  --ok: 5 150 105;
+  --warn: 217 119 6;
+  --danger: 225 29 72;
+  --shadow-card: 0 1px 2px rgba(30, 12, 72, 0.04), 0 8px 24px -12px rgba(30, 12, 72, 0.1);
+  --shadow-pop: 0 2px 6px rgba(30, 12, 72, 0.06), 0 24px 48px -16px rgba(30, 12, 72, 0.22);
+  --shadow-glow: 0 10px 30px -8px rgba(109, 40, 217, 0.55);
+}
+
+.dark {
   color-scheme: dark;
+  --canvas: 12 8 28;
+  --surface: 21 14 44;
+  --well: 29 21 60;
+  --well-2: 41 31 82;
+  --line: 40 31 78;
+  --line-strong: 58 46 107;
+  --fg: 245 242 255;
+  --fg-2: 207 200 232;
+  --muted: 154 144 189;
+  --faint: 108 98 144;
+  --brand: 139 92 246;
+  --brand-strong: 124 58 237;
+  --brand-soft: 42 28 90;
+  --brand-ink: 196 181 253;
+  --brand-deep: 30 12 72;
+  --gold: 245 194 66;
+  --gold-ink: 245 194 66;
+  --ok: 52 211 153;
+  --warn: 251 191 36;
+  --danger: 251 113 133;
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 10px 34px -8px rgba(139, 92, 246, 0.6);
 }
 
 html,
 body {
-  @apply bg-ink-900 font-sans text-slate-100 antialiased;
+  @apply bg-canvas font-sans text-fg antialiased;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -16,12 +67,16 @@ input[type="number"]::-webkit-inner-spin-button {
   opacity: 0.4;
 }
 
+::selection {
+  @apply bg-brand/20;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  @apply rounded-full bg-ink-600;
+  @apply rounded-full bg-line-strong;
 }
 ::-webkit-scrollbar-track {
   background: transparent;

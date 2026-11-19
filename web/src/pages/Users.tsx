@@ -8,29 +8,32 @@ import { toast } from "../lib/toast";
 import { useAuction } from "../realtime/auctionStore";
 import { Loading } from "./Teams";
 
+// Stable fallback: a fresh `[]` inside a zustand selector re-renders forever.
+const NONE: never[] = [];
+
 export function UsersPage() {
   const { data: users, isLoading } = useUsers();
-  const teams = useAuction((s) => s.snap?.teams ?? []);
-  const online = useAuction((s) => s.snap?.online ?? []);
+  const teams = useAuction((s) => s.snap?.teams) ?? NONE;
+  const online = useAuction((s) => s.snap?.online) ?? NONE;
   const [editing, setEditing] = useState<Me | null>(null);
   if (isLoading || !users) return <Loading />;
 
   return (
-    <Page title="Users">
-      <Card className="divide-y divide-ink-700/60">
+    <Page title="Users" subtitle="Admins and team owners. Green dot = online now.">
+      <Card className="divide-y divide-line">
         {users.map((u) => {
           const team = teams.find((t) => t.id === u.team_id);
           return (
             <div key={u.id} className="flex flex-wrap items-center gap-4 px-4 py-3">
               <div className="relative">
                 <Avatar name={u.display_name} imageId={u.avatar_image_id} size={40} />
-                <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-ink-850 ${online.includes(u.id) ? "bg-emerald-400" : "bg-slate-600"}`} />
+                <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface ${online.includes(u.id) ? "bg-ok" : "bg-faint"}`} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="font-medium">{u.display_name}</div>
-                <div className="text-xs text-slate-500">
+                <div className="font-semibold">{u.display_name}</div>
+                <div className="text-xs text-muted">
                   @{u.username} · {u.role}
-                  {u.must_change_password && <span className="ml-2 text-amber-400">must change password</span>}
+                  {u.must_change_password && <span className="ml-2 text-warn">must change password</span>}
                 </div>
               </div>
               {u.role === "owner" && (
@@ -51,7 +54,7 @@ export function UsersPage() {
 
 function EditUser({ user, onClose }: { user: Me; onClose: () => void }) {
   const qc = useQueryClient();
-  const teams = useAuction((s) => s.snap?.teams ?? []);
+  const teams = useAuction((s) => s.snap?.teams) ?? NONE;
   const [username, setUsername] = useState(user.username);
   const [display, setDisplay] = useState(user.display_name);
   const [team, setTeam] = useState(user.team_id ? String(user.team_id) : "");

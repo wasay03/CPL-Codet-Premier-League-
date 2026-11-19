@@ -46,7 +46,7 @@ export function RulesPage() {
   return (
     <Page
       title="Auction rules"
-      actions={locked && <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-700 px-3 py-1.5 text-sm text-slate-300"><Lock size={14} /> Locked — the auction has started</span>}
+      actions={locked && <span className="inline-flex items-center gap-1.5 rounded-full bg-well px-3 py-1.5 text-sm text-fg-2"><Lock size={14} /> Locked — the auction has started</span>}
     >
       <form onSubmit={save} className="space-y-5">
         <fieldset disabled={locked} className="space-y-5">
@@ -57,8 +57,8 @@ export function RulesPage() {
               <Field label="Minimum squad"><Input type="number" min={0} value={form.min_squad} onChange={num("min_squad")} /></Field>
               <Field label="Maximum squad" hint={`Tier quotas add up to ${maxSquadFromTiers}`}><Input type="number" min={1} value={form.max_squad} onChange={num("max_squad")} /></Field>
             </div>
-            <p className="mt-3 text-xs text-slate-500">
-              A full squad bought at base prices costs <b className="text-slate-300">{fullAtBase}</b>, leaving <b className="text-slate-300">{form.purse - fullAtBase}</b> for bidding wars.
+            <p className="mt-3 text-xs text-muted">
+              A full squad bought at base prices costs <b className="text-fg-2">{fullAtBase}</b>, leaving <b className="text-fg-2">{form.purse - fullAtBase}</b> for bidding wars.
             </p>
           </Card>
 
@@ -67,7 +67,7 @@ export function RulesPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-sm">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-slate-500">
+                  <tr className="text-left text-[11px] font-semibold uppercase tracking-[.1em] text-muted">
                     <th className="pb-2 pr-2">Tier</th>
                     <th className="pb-2 pr-2">Name</th>
                     <th className="pb-2 pr-2">Max / team</th>
@@ -125,9 +125,9 @@ export function RulesPage() {
         {!locked && <Button variant="primary" size="lg">Save rules</Button>}
       </form>
 
-      <Card className="mt-8 border-rose-500/30 p-5">
+      <Card className="mt-8 border-danger/30 p-5">
         <SectionTitle>Danger zone</SectionTitle>
-        <p className="mb-3 text-sm text-slate-400">Reset wipes every sale and bid, refills purses and unlocks the rules. Players, teams and users stay.</p>
+        <p className="mb-3 text-sm text-muted">Reset wipes every sale and bid, refills purses and unlocks the rules. Players, teams and users stay.</p>
         <Button variant="danger" onClick={() => setResetOpen(true)}>Reset auction…</Button>
       </Card>
       <ResetModal open={resetOpen} onClose={() => setResetOpen(false)} />
@@ -137,13 +137,13 @@ export function RulesPage() {
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
-    <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-300">
+    <label className="flex cursor-pointer items-center gap-3 text-sm text-fg-2">
       <button
         type="button"
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition ${checked ? "bg-gavel" : "bg-ink-600"}`}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition ${checked ? "bg-brand" : "bg-line-strong"}`}
       >
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
       </button>
@@ -167,7 +167,7 @@ function ResetModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   };
   return (
     <Modal open={open} onClose={onClose} title="Reset the auction">
-      <p className="mb-3 text-sm text-slate-400">This can't be undone. Type <b className="text-white">RESET</b> to confirm.</p>
+      <p className="mb-3 text-sm text-muted">This can't be undone. Type <b className="text-fg">RESET</b> to confirm.</p>
       <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="RESET" />
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="ghost" onClick={onClose}>Cancel</Button>

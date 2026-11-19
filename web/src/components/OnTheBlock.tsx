@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Clock } from "lucide-react";
+import { Clock, Crown } from "lucide-react";
 import type { Snapshot } from "../api/types";
-import { Avatar, Card, TeamLogo, TierBadge } from "./ui";
+import { Avatar, Card, Eyebrow, TeamLogo, TierBadge } from "./ui";
 import { Countdown } from "./Countdown";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -10,6 +10,10 @@ const ROLE_LABEL: Record<string, string> = {
   "all-rounder": "All-rounder",
   "wicket-keeper": "Wicket-keeper",
 };
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-full bg-well px-2.5 py-1 text-xs font-medium text-fg-2">{children}</span>;
+}
 
 export function OnTheBlock({ snap, msLeft }: { snap: Snapshot; msLeft: number }) {
   const lot = snap.lot!;
@@ -20,59 +24,80 @@ export function OnTheBlock({ snap, msLeft }: { snap: Snapshot; msLeft: number })
   const paused = snap.status === "paused";
 
   return (
-    <Card className="relative overflow-hidden p-5 sm:p-6">
+    <Card className="relative overflow-hidden">
       <div
-        className="pointer-events-none absolute inset-0 opacity-30 transition-colors duration-500"
-        style={{ background: `radial-gradient(ellipse at 80% 0%, ${leader?.color ?? "#f5b301"}55, transparent 60%)` }}
+        className="pointer-events-none absolute inset-0 transition-[background] duration-700"
+        style={{ background: `radial-gradient(600px 260px at 90% -10%, ${leader?.color ?? "#7c3aed"}26, transparent 70%)` }}
       />
-      <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
-        <div className="flex flex-1 items-center gap-4 sm:gap-5">
-          <Avatar name={p.name} imageId={p.photo_image_id} size={104} className="ring-4 ring-ink-700" />
+      <div className="relative flex items-center gap-6 p-5 sm:p-7">
+        <div className="flex flex-1 items-center gap-4 sm:gap-6">
+          <div className="shrink-0 self-start rounded-full bg-gradient-to-br from-brand to-gold p-[3px] shadow-glow sm:self-center">
+            <Avatar name={p.name} imageId={p.photo_image_id} size={104} className="hidden ring-4 ring-surface sm:inline-flex" />
+            <Avatar name={p.name} imageId={p.photo_image_id} size={68} className="ring-[3px] ring-surface sm:hidden" />
+          </div>
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> On the block
+              </span>
               <TierBadge tier={tier} size="md" />
-              {lot.round === "accelerated" && <span className="rounded-md bg-fuchsia-500/20 px-2 py-1 text-xs font-bold uppercase text-fuchsia-300">Accelerated</span>}
-              {p.drop_count > 0 && <span className="rounded-md bg-ink-700 px-2 py-1 text-xs text-slate-300">Dropped ×{p.drop_count}</span>}
+              {lot.round === "accelerated" && (
+                <span className="rounded-full bg-fuchsia-500/10 px-2.5 py-1 text-xs font-bold text-fuchsia-600 ring-1 ring-inset ring-fuchsia-500/20 dark:text-fuchsia-300">
+                  Accelerated
+                </span>
+              )}
+              {p.drop_count > 0 && <Chip>Dropped ×{p.drop_count}</Chip>}
             </div>
-            <h2 className="font-display text-4xl font-extrabold uppercase leading-none tracking-wide sm:text-5xl">{p.name}</h2>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-400">
-              {p.role && <span>{ROLE_LABEL[p.role] ?? p.role}</span>}
-              {p.batting_style && <span>Bat: {p.batting_style}</span>}
-              {p.bowling_style && <span>Bowl: {p.bowling_style}</span>}
-              <span>Base <b className="text-slate-200">{lot.opening_price}</b></span>
+            <h2 className="font-display text-3xl font-bold leading-tight tracking-tight sm:text-[2.6rem]">{p.name}</h2>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {p.role && <Chip>{ROLE_LABEL[p.role] ?? p.role}</Chip>}
+              {p.batting_style && <Chip>Bat: {p.batting_style}</Chip>}
+              {p.bowling_style && <Chip>Bowl: {p.bowling_style}</Chip>}
+              <Chip>
+                Base <b className="text-fg">{lot.opening_price}</b>
+              </Chip>
             </div>
-            {p.note && <p className="mt-2 max-w-md text-sm italic text-slate-300">“{p.note}”</p>}
+            {p.note && <p className="mt-3 max-w-md text-sm italic text-fg-2">“{p.note}”</p>}
           </div>
         </div>
-        <Countdown msLeft={msLeft} totalMs={total} paused={paused} />
+        <div className="hidden sm:block">
+          <Countdown msLeft={msLeft} totalMs={total} paused={paused} />
+        </div>
       </div>
 
-      <div className="relative mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-ink-700 pt-5">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[.2em] text-slate-500">{lot.high_bid ? "Current bid" : "Opening bid"}</div>
-          <AnimatePresence mode="popLayout">
-            <motion.div
-              key={lot.high_bid ?? "open"}
-              initial={{ y: 18, opacity: 0, scale: 0.9 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              className="font-display text-7xl font-black leading-none tabular-nums sm:text-8xl"
-              style={{ color: leader?.color ?? "#94a3b8" }}
-            >
-              {lot.high_bid ?? lot.opening_price}
-            </motion.div>
-          </AnimatePresence>
+      <div className="relative grid gap-px border-t border-line bg-line sm:grid-cols-[1.2fr_1fr]">
+        <div className="flex items-center justify-between gap-4 bg-surface/95 px-5 py-5 sm:px-7">
+          <div>
+            <Eyebrow>{lot.high_bid ? "Current bid" : "Opening bid"}</Eyebrow>
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                key={lot.high_bid ?? "open"}
+                initial={{ y: 18, opacity: 0, scale: 0.92 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                className="mt-1 font-display text-7xl font-extrabold leading-none tracking-tight tabular-nums text-fg sm:text-8xl"
+              >
+                {lot.high_bid ?? lot.opening_price}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <div className="sm:hidden">
+            <Countdown msLeft={msLeft} totalMs={total} paused={paused} size="sm" />
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 bg-surface/95 px-5 py-5 sm:px-7">
           {leader ? (
             <>
-              <TeamLogo team={leader} size={48} />
-              <div>
-                <div className="text-xs uppercase tracking-wider text-slate-500">Leading</div>
-                <div className="font-display text-2xl font-bold" style={{ color: leader.color }}>{leader.name}</div>
+              <span className="h-12 w-1 rounded-full" style={{ background: leader.color }} />
+              <TeamLogo team={leader} size={52} />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[.12em] text-muted">
+                  <Crown size={12} className="text-gold" /> Leading
+                </div>
+                <div className="truncate text-xl font-bold tracking-tight">{leader.name}</div>
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-2 text-slate-400">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted">
               <Clock size={16} /> No bids yet
             </div>
           )}

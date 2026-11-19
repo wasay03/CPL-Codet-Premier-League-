@@ -1,4 +1,5 @@
-import { Gavel, Trophy, Zap } from "lucide-react";
+import clsx from "clsx";
+import { Gavel, Pause, Trophy, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BidPanel } from "../components/BidPanel";
 import { ControlBar } from "../components/ControlBar";
@@ -6,7 +7,7 @@ import { OnTheBlock } from "../components/OnTheBlock";
 import { SidePanels } from "../components/SidePanels";
 import { SoldOverlay } from "../components/SoldOverlay";
 import { TeamCard } from "../components/TeamCard";
-import { Button, Card, Spinner, TierBadge } from "../components/ui";
+import { Button, Card, Eyebrow, Spinner, TierBadge } from "../components/ui";
 import type { Snapshot } from "../api/types";
 import { useSession } from "../lib/session";
 import { useAuction } from "../realtime/auctionStore";
@@ -19,7 +20,7 @@ export function RoomPage() {
 
   if (!snap)
     return (
-      <div className="flex h-[60vh] items-center justify-center gap-3 text-slate-400">
+      <div className="flex h-[60vh] items-center justify-center gap-3 text-muted">
         <Spinner /> Connecting to the auction room…
       </div>
     );
@@ -28,13 +29,13 @@ export function RoomPage() {
   const isOwner = me?.role === "owner";
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-6 pt-4 sm:px-6">
+    <div className="mx-auto w-full max-w-7xl px-4 pb-6 pt-6 sm:px-6">
       {isAdmin && (
         <div className="mb-4">
           <ControlBar snap={snap} />
         </div>
       )}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-4">
           {snap.lot ? <OnTheBlock snap={snap} msLeft={msLeft} /> : <IdleCard snap={snap} isAdmin={isAdmin} />}
           {isOwner && <BidPanel snap={snap} msLeft={msLeft} />}
@@ -66,20 +67,26 @@ export function RoomPage() {
 
 function BidLadder({ snap }: { snap: Snapshot }) {
   return (
-    <Card className="p-4">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-[.18em] text-slate-500">Bids on this player · {snap.lot!.bid_count}</div>
+    <Card className="p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <Eyebrow>Bids on this player</Eyebrow>
+        <span className="rounded-full bg-well px-2 py-0.5 text-xs font-bold tabular-nums text-fg-2">{snap.lot!.bid_count}</span>
+      </div>
       <div className="flex flex-wrap gap-2">
         {snap.lot!.bids.map((b, i) => {
           const t = snap.teams.find((x) => x.id === b.team_id);
           return (
             <span
               key={b.id}
-              className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm tabular-nums"
-              style={{ borderColor: `${t?.color}66`, background: i === 0 ? `${t?.color}22` : undefined }}
+              className={clsx(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm tabular-nums",
+                i === 0 ? "border-transparent font-semibold text-white shadow-sm" : "border-line bg-surface text-fg-2",
+              )}
+              style={i === 0 ? { background: t?.color } : undefined}
             >
-              <span className="h-2 w-2 rounded-full" style={{ background: t?.color }} />
+              {i !== 0 && <span className="h-2 w-2 rounded-full" style={{ background: t?.color }} />}
               <b>{b.amount}</b>
-              <span className="text-xs text-slate-400">{t?.short_code}</span>
+              <span className={clsx("text-xs", i === 0 ? "text-white/80" : "text-muted")}>{t?.short_code}</span>
             </span>
           );
         })}
@@ -92,26 +99,28 @@ function IdleCard({ snap, isAdmin }: { snap: Snapshot; isAdmin: boolean }) {
   const nextTier = snap.tiers.find((t) => (snap.queues[String(t.id)] ?? []).length > 0);
   const mainDone = snap.status === "running" && snap.queued_count === 0;
 
-  let icon = <Gavel size={40} />;
+  let icon: React.ReactNode = <Gavel size={34} />;
   let title = "";
   let body: React.ReactNode = null;
 
   if (snap.status === "not_started") {
+    icon = null;
     title = "The room is open";
     body = isAdmin ? "Check the rules and players, then press Start auction." : "Waiting for the auctioneer to start. Get your strategy ready.";
   } else if (snap.status === "finished") {
-    icon = <Trophy size={40} />;
+    icon = <Trophy size={34} />;
     title = "Auction complete";
     body = (
       <Link to="/results">
-        <Button variant="primary" className="mt-2">See final squads</Button>
+        <Button variant="primary" className="mt-3">See final squads</Button>
       </Link>
     );
   } else if (snap.status === "paused") {
+    icon = <Pause size={34} />;
     title = "Paused";
     body = "The auctioneer paused the room. Hang tight.";
   } else if (mainDone) {
-    icon = <Zap size={40} />;
+    icon = <Zap size={34} />;
     title = "Main round complete";
     body =
       snap.settings.accelerated_enabled && snap.unsold_pool.length
@@ -129,10 +138,15 @@ function IdleCard({ snap, isAdmin }: { snap: Snapshot; isAdmin: boolean }) {
   }
 
   return (
-    <Card className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
-      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gavel/10 text-gavel">{icon}</div>
-      <h2 className="font-display text-4xl font-extrabold uppercase tracking-wide">{title}</h2>
-      <div className="mt-2 max-w-md text-slate-400">{body}</div>
+    <Card className="relative flex min-h-[320px] flex-col items-center justify-center overflow-hidden p-8 text-center">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(500px_220px_at_50%_0%,rgb(var(--brand)/.10),transparent)]" />
+      {icon ? (
+        <div className="relative mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-brand-soft text-brand-ink">{icon}</div>
+      ) : (
+        <img src="/logo.webp" alt="" width={150} height={150} className="relative mb-3 h-[150px] w-[150px] object-contain drop-shadow-xl" />
+      )}
+      <h2 className="relative text-3xl font-extrabold tracking-tight">{title}</h2>
+      <div className="relative mt-2 max-w-md text-muted">{body}</div>
     </Card>
   );
 }

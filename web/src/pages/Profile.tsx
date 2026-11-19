@@ -11,10 +11,10 @@ export function ProfilePage() {
   const me = useSession((s) => s.me)!;
   const mustChange = me.must_change_password;
   return (
-    <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-6">
-      <h1 className="font-display text-4xl font-extrabold uppercase">Profile</h1>
+    <div className="mx-auto max-w-2xl space-y-5 px-4 py-8 sm:px-6">
+      <h1 className="text-3xl font-extrabold tracking-tight">Profile</h1>
       {mustChange && (
-        <div className="flex items-start gap-3 rounded-xl border border-gavel/40 bg-gavel/10 p-4 text-sm text-gavel-soft">
+        <div className="flex items-start gap-3 rounded-xl border border-brand/20 bg-brand-soft p-4 text-sm font-medium text-brand-ink">
           <KeyRound size={18} className="mt-0.5 shrink-0" />
           Welcome! Set a new password before entering the auction room.
         </div>
@@ -52,7 +52,7 @@ function ProfileCard() {
       <SectionTitle>You</SectionTitle>
       <form onSubmit={save} className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <label className="cursor-pointer" title="Change photo">
-          <Avatar name={me.display_name} imageId={me.avatar_image_id} size={72} className="ring-2 ring-ink-600 hover:ring-gavel" />
+          <Avatar name={me.display_name} imageId={me.avatar_image_id} size={72} className="ring-2 ring-line-strong hover:ring-brand" />
           <input type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
         </label>
         <div className="flex-1">
@@ -60,7 +60,7 @@ function ProfileCard() {
         </div>
         <Button variant="primary">Save</Button>
       </form>
-      <p className="mt-3 text-xs text-slate-500">Signed in as <b>{me.username}</b> · {me.role}</p>
+      <p className="mt-3 text-xs text-muted">Signed in as <b>{me.username}</b> · {me.role}</p>
     </Card>
   );
 }
@@ -132,13 +132,13 @@ export function TeamCardForm({ teamId }: { teamId: number }) {
             <TeamLogo team={{ ...team, ...form }} size={72} />
             <input type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
           </label>
-          <p className="text-xs text-slate-500">Tap the logo to upload a new one (up to 1 MB).</p>
+          <p className="text-xs text-muted">Tap the logo to upload a new one (up to 1 MB).</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-[1fr_120px_120px]">
           <Field label="Team name"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={64} required /></Field>
           <Field label="Short code"><Input value={form.short_code} onChange={(e) => setForm({ ...form, short_code: e.target.value.toUpperCase() })} maxLength={6} required /></Field>
           <Field label="Colour">
-            <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="h-10 w-full cursor-pointer rounded-lg border border-ink-600 bg-ink-900 p-1" />
+            <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="h-10 w-full cursor-pointer rounded-xl border border-line-strong bg-surface p-1" />
           </Field>
         </div>
         <Button variant="primary">Save team</Button>

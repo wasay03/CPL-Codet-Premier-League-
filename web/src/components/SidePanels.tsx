@@ -29,7 +29,7 @@ export function SidePanels({ snap }: { snap: Snapshot }) {
 
   return (
     <Card className="flex min-h-[320px] flex-col overflow-hidden">
-      <div className="flex border-b border-ink-700">
+      <div className="m-2 mb-0 flex rounded-xl bg-well p-1">
         {(
           [
             ["queue", `Queue · ${snap.queued_count}`],
@@ -41,8 +41,8 @@ export function SidePanels({ snap }: { snap: Snapshot }) {
             key={k}
             onClick={() => setTab(k)}
             className={clsx(
-              "flex-1 px-3 py-3 text-xs font-semibold uppercase tracking-wider transition-colors",
-              tab === k ? "border-b-2 border-gavel text-white" : "text-slate-500 hover:text-slate-300",
+              "flex-1 rounded-lg px-2 py-2 text-xs font-semibold transition-all",
+              tab === k ? "bg-surface text-brand-ink shadow-sm" : "text-muted hover:text-fg",
             )}
           >
             {label}
@@ -60,18 +60,18 @@ export function SidePanels({ snap }: { snap: Snapshot }) {
                 <div key={t.id}>
                   <div className="mb-2 flex items-center gap-2">
                     <TierBadge tier={t} />
-                    <span className="text-xs text-slate-500">{list.length} waiting · base {t.base_price}</span>
+                    <span className="text-xs text-muted">{list.length} waiting · base {t.base_price}</span>
                   </div>
                   <ul className="space-y-1">
                     {list.map((p) => (
-                      <li key={p.id} className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-ink-800">
+                      <li key={p.id} className="group flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-well">
                         <Avatar name={p.name} imageId={p.photo_image_id} size={28} />
-                        <span className="flex-1 truncate text-sm">{p.name}</span>
-                        {p.drop_count > 0 && <span className="text-[10px] text-slate-500">↓{p.drop_count}</span>}
+                        <span className="flex-1 truncate text-sm font-medium">{p.name}</span>
+                        {p.drop_count > 0 && <span className="text-[10px] text-muted">↓{p.drop_count}</span>}
                         {isAdmin && live && !snap.lot && (
                           <button
                             onClick={() => pick(p.id)}
-                            className="rounded-md p-1 text-slate-500 opacity-0 transition hover:bg-gavel hover:text-ink-950 group-hover:opacity-100 max-sm:opacity-100"
+                            className="rounded-lg p-1.5 text-muted opacity-0 transition hover:bg-brand hover:text-white group-hover:opacity-100 max-sm:opacity-100"
                             title="Put on the block"
                           >
                             <Gavel size={14} />
@@ -120,7 +120,7 @@ function PoolPanel({ snap }: { snap: Snapshot }) {
   return (
     <div>
       {canNominate && (
-        <p className="mb-3 rounded-lg bg-fuchsia-500/10 p-3 text-xs text-fuchsia-200">
+        <p className="mb-3 rounded-xl bg-brand-soft p-3 text-xs font-medium text-brand-ink">
           <Sparkles size={12} className="mr-1 inline" />
           Pick players to bring back in the accelerated round at the Emerging base price.
         </p>
@@ -133,17 +133,17 @@ function PoolPanel({ snap }: { snap: Snapshot }) {
               <button
                 disabled={!canNominate}
                 onClick={() => setSel(on ? chosen.filter((x) => x !== p.id) : [...chosen, p.id])}
-                className={clsx("flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left", canNominate && "hover:bg-ink-800", on && "bg-fuchsia-500/10")}
+                className={clsx("flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left", canNominate && "hover:bg-well", on && "bg-brand-soft")}
               >
                 <Avatar name={p.name} imageId={p.photo_image_id} size={28} />
-                <span className="flex-1 truncate text-sm">{p.name}</span>
+                <span className="flex-1 truncate text-sm font-medium">{p.name}</span>
                 <span className="flex gap-1">
                   {(nominatedBy[p.id] ?? []).map((tid) => {
                     const t = snap.teams.find((x) => x.id === tid);
                     return <span key={tid} className="h-2 w-2 rounded-full" style={{ background: t?.color }} title={`Nominated by ${t?.name}`} />;
                   })}
                 </span>
-                {canNominate && <span className={clsx("flex h-5 w-5 items-center justify-center rounded border", on ? "border-fuchsia-400 bg-fuchsia-500 text-white" : "border-ink-500")}>{on && <Check size={12} />}</span>}
+                {canNominate && <span className={clsx("flex h-5 w-5 items-center justify-center rounded-md border", on ? "border-brand bg-brand text-white" : "border-line-strong")}>{on && <Check size={12} />}</span>}
               </button>
             </li>
           );
@@ -180,10 +180,10 @@ function FeedPanel({ snap }: { snap: Snapshot }) {
       {items.map((f) => {
         const team = snap.teams.find((t) => t.id === f.teamId);
         return (
-          <li key={f.id} className={clsx("flex items-start gap-2 rounded-lg px-2 py-1.5 text-sm", f.kind === "sold" && "bg-gavel/10 font-semibold text-gavel-soft")}>
-            <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: team?.color ?? (f.kind === "unsold" ? "#64748b" : "#3d4870") }} />
+          <li key={f.id} className={clsx("flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-sm text-fg-2", f.kind === "sold" && "bg-brand-soft font-semibold text-brand-ink")}>
+            <span className={clsx("mt-1.5 h-2 w-2 shrink-0 rounded-full", !team && (f.kind === "unsold" ? "bg-faint" : "bg-line-strong"))} style={team ? { background: team.color } : undefined} />
             <span className="flex-1">{f.text}</span>
-            <span className="shrink-0 text-[10px] tabular-nums text-slate-600">
+            <span className="mt-0.5 shrink-0 text-[10px] tabular-nums text-faint">
               {f.at ? new Date(f.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : ""}
             </span>
           </li>

@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import { usePlayers, useSettings } from "../api/hooks";
 import type { Player, Tier } from "../api/types";
-import { Avatar, Button, Card, Empty, Field, Input, Modal, Page, Select, TierBadge } from "../components/ui";
+import { Avatar, Button, Card, Empty, Field, Input, Modal, Page, Select, textareaClass, TierBadge } from "../components/ui";
 import { useSession } from "../lib/session";
 import { toast } from "../lib/toast";
 import { useAuction } from "../realtime/auctionStore";
@@ -13,10 +13,13 @@ import { Loading } from "./Teams";
 const STATUS: Record<string, string> = { queued: "Queued", on_block: "On the block", sold: "Sold", unsold_pool: "Unsold pool" };
 const ROLES = ["batter", "bowler", "all-rounder", "wicket-keeper"];
 
+// Stable fallback: a fresh `[]` inside a zustand selector re-renders forever.
+const NONE: never[] = [];
+
 export function PlayersPage() {
   const { data: players, isLoading } = usePlayers();
   const { data: settings } = useSettings();
-  const teams = useAuction((s) => s.snap?.teams ?? []);
+  const teams = useAuction((s) => s.snap?.teams) ?? NONE;
   const isAdmin = useSession((s) => s.me?.role === "admin");
   const qc = useQueryClient();
   const [q, setQ] = useState("");
@@ -78,6 +81,7 @@ export function PlayersPage() {
   return (
     <Page
       title="Players"
+      subtitle={`${players?.length ?? 0} players in the pool`}
       actions={
         isAdmin && (
           <div className="flex gap-2">
@@ -109,7 +113,7 @@ export function PlayersPage() {
         <Card className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-ink-700 text-left text-xs uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-line bg-well/60 text-left text-[11px] font-semibold uppercase tracking-[.1em] text-muted">
                 <th className="px-4 py-3">Player</th>
                 <th className="px-4 py-3">Tier</th>
                 <th className="px-4 py-3">Status</th>
@@ -123,29 +127,29 @@ export function PlayersPage() {
                 const orig = tiers.find((x) => x.id === p.original_tier_id);
                 const team = teams.find((x) => x.id === p.sold_team_id);
                 return (
-                  <tr key={p.id} className="border-b border-ink-700/50 last:border-0 hover:bg-ink-800/50">
+                  <tr key={p.id} className="border-b border-line last:border-0 hover:bg-well/60">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-3">
                         <Avatar name={p.name} imageId={p.photo_image_id} size={34} />
                         <div>
-                          <div className="font-medium">{p.name}</div>
-                          <div className="text-xs capitalize text-slate-500">{[p.role, p.batting_style, p.bowling_style].filter(Boolean).join(" · ") || "—"}</div>
+                          <div className="font-semibold">{p.name}</div>
+                          <div className="text-xs capitalize text-muted">{[p.role, p.batting_style, p.bowling_style].filter(Boolean).join(" · ") || "—"}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-2.5">
                       <TierBadge tier={t} />
-                      {orig && orig.id !== t?.id && <div className="mt-1 text-[11px] text-slate-500">was {orig.name}</div>}
+                      {orig && orig.id !== t?.id && <div className="mt-1 text-[11px] text-muted">was {orig.name}</div>}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-300">{STATUS[p.status]}</td>
+                    <td className="px-4 py-2.5 text-fg-2">{STATUS[p.status]}</td>
                     <td className="px-4 py-2.5">
                       {team ? (
                         <span className="inline-flex items-center gap-2">
                           <span className="h-2 w-2 rounded-full" style={{ background: team.color }} />
-                          {team.name} · <b className="text-gavel">{p.sold_price}</b>
+                          {team.name} · <b className="text-brand-ink">{p.sold_price}</b>
                         </span>
                       ) : (
-                        <span className="text-slate-600">—</span>
+                        <span className="text-faint">—</span>
                       )}
                     </td>
                     {isAdmin && (
@@ -176,7 +180,7 @@ export function PlayersPage() {
 
 function IconBtn({ children, danger, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { danger?: boolean }) {
   return (
-    <button {...props} className={`rounded-md p-1.5 text-slate-400 hover:bg-ink-700 ${danger ? "hover:text-rose-400" : "hover:text-white"}`}>
+    <button {...props} className={`rounded-lg p-1.5 text-muted transition-colors ${danger ? "hover:bg-danger/10 hover:text-danger" : "hover:bg-brand-soft hover:text-brand-ink"}`}>
       {children}
     </button>
   );
@@ -246,11 +250,11 @@ function PlayerForm({ player, tiers, onClose }: { player: Player | null; tiers: 
             onChange={set("note")}
             maxLength={500}
             rows={2}
-            className="w-full rounded-lg border border-ink-600 bg-ink-900 px-3 py-2 text-sm focus:border-gavel/70 focus:outline-none"
+            className={textareaClass}
           />
         </Field>
         <Field label="Photo" hint="PNG, JPEG or WebP, up to 1 MB">
-          <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="text-sm text-slate-400 file:mr-3 file:rounded-md file:border-0 file:bg-ink-700 file:px-3 file:py-1.5 file:text-slate-200" />
+          <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-brand-soft file:px-3 file:py-1.5 file:font-semibold file:text-brand-ink" />
         </Field>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

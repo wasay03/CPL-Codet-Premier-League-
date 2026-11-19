@@ -9,7 +9,7 @@ import { toast } from "../lib/toast";
 import { useAuction } from "../realtime/auctionStore";
 import { refreshSnapshot } from "../realtime/poll";
 import { sendBid } from "../realtime/useAuctionSocket";
-import { Spinner } from "./ui";
+import { Eyebrow, Spinner } from "./ui";
 
 export function BidPanel({ snap, msLeft }: { snap: Snapshot; msLeft: number }) {
   const me = useSession((s) => s.me);
@@ -49,12 +49,17 @@ export function BidPanel({ snap, msLeft }: { snap: Snapshot; msLeft: number }) {
   };
 
   return (
-    <div className="sticky bottom-0 z-30 -mx-4 border-t border-ink-700 bg-ink-900/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:rounded-2xl sm:border sm:bg-ink-850/90 sm:p-4">
-      <div className="flex items-center gap-4">
-        <div className="hidden min-w-0 flex-1 sm:block">
-          <div className="text-xs uppercase tracking-wider text-slate-500">Your purse · max bid</div>
-          <div className="font-display text-2xl font-bold tabular-nums">
-            {team?.purse_remaining ?? "—"} <span className="text-slate-500">·</span> <span className="text-gavel">{team?.max_bid ?? "—"}</span>
+    <div className="sticky bottom-0 z-30 -mx-4 border-t border-line bg-surface/90 px-4 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3 shadow-pop backdrop-blur-xl sm:static sm:mx-0 sm:rounded-2xl sm:border sm:bg-surface sm:p-4 sm:shadow-card">
+      <div className="flex items-center gap-5">
+        <div className="hidden min-w-0 flex-1 gap-6 sm:flex">
+          <div>
+            <Eyebrow>Your purse</Eyebrow>
+            <div className="font-display text-3xl font-bold tabular-nums">{team?.purse_remaining ?? "—"}</div>
+          </div>
+          <div className="w-px bg-line" />
+          <div>
+            <Eyebrow>Max bid</Eyebrow>
+            <div className="font-display text-3xl font-bold tabular-nums text-brand-ink">{team?.max_bid ?? "—"}</div>
           </div>
         </div>
         <div className="flex-1 sm:flex-none">
@@ -62,14 +67,16 @@ export function BidPanel({ snap, msLeft }: { snap: Snapshot; msLeft: number }) {
             onClick={bid}
             disabled={!!reason || pending}
             className={clsx(
-              "flex h-16 w-full items-center justify-center gap-3 rounded-2xl px-8 font-display text-3xl font-extrabold uppercase tracking-wide transition-all sm:min-w-[300px]",
-              reason ? "cursor-not-allowed bg-ink-700 text-slate-500" : "bg-gavel text-ink-950 shadow-glow hover:bg-gavel-soft active:scale-[.97]",
+              "flex h-16 w-full items-center justify-center gap-3 rounded-2xl px-8 font-display text-2xl font-bold tracking-tight transition-all sm:min-w-[300px]",
+              reason
+                ? "cursor-not-allowed bg-well text-faint"
+                : "bg-gradient-to-r from-brand to-brand-strong text-white shadow-glow hover:brightness-110 active:scale-[.97]",
             )}
           >
-            {pending ? <Spinner className="h-6 w-6" /> : <Gavel size={26} strokeWidth={2.5} />}
+            {pending ? <Spinner className="h-6 w-6" /> : <Gavel size={24} strokeWidth={2.4} />}
             {lot ? `Bid ${lot.next_bid}` : "Bid"}
           </button>
-          <div className={clsx("mt-1.5 h-4 text-center text-xs font-medium", reason ? "text-slate-400" : "text-emerald-400")}>
+          <div className={clsx("mt-1.5 h-4 text-center text-xs font-semibold", reason ? "text-muted" : "text-ok")}>
             {reason ?? `Max bid ${team?.max_bid} · ${Math.ceil(msLeft / 1000)}s left`}
           </div>
         </div>
