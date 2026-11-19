@@ -16,6 +16,9 @@ from .conftest import PASSWORDS
 
 @pytest.fixture
 def live_server(fresh_data):
+    from app.security import reset_guards
+
+    reset_guards()
     sock = socket.socket()
     sock.bind(("127.0.0.1", 0))
     port = sock.getsockname()[1]
@@ -95,3 +98,44 @@ async def test_live_bid_round_trip(live_server):
         snap = await recv_until(ws1, "state", where=lambda d: d["lot"] and d["lot"]["high_bid"])
         assert snap["data"]["lot"]["high_team_id"] == 1
         assert set(snap["data"]["online"]) >= {2, 3}
+
+
+async def closed_with(ws) -> int:
+    with pytest.raises(websockets.ConnectionClosed) as exc:
+        for _ in range(100):
+            await asyncio.wait_for(ws.recv(), 5)
+    return exc.value.rcvd.code
+
+
+async def test_ws_connection_caps(live_server, monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "ws_max_per_user", 2)
+    monkeypatch.setattr(get_settings(), "ws_max_viewer", 3)
+    t1, tv = token(live_server, "owner1"), token(live_server, "viewer")
+    url = f"ws://{live_server}/ws?token="
+    async with websockets.connect(url + t1) as a, websockets.connect(url + t1) as b:
+        await recv_until(a, "state")
+        await recv_until(b, "state")
+        async with websockets.connect(url + t1) as c:
+            assert await closed_with(c) == 4429
+        # The shared viewer login has its own, larger allowance.
+        async with (
+            websockets.connect(url + tv) as v1,
+            websockets.connect(url + tv) as v2,
+            websockets.connect(url + tv) as v3,
+        ):
+            for v in (v1, v2, v3):
+                await recv_until(v, "state")
+
+
+async def test_ws_message_flood_is_cut_off(live_server, monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "ws_msg_burst", 5)
+    monkeypatch.setattr(get_settings(), "ws_msgs_per_sec", 0.01)
+    async with websockets.connect(f"ws://{live_server}/ws?token={token(live_server, 'owner1')}") as ws:
+        await recv_until(ws, "state")
+        for _ in range(10):
+            await ws.send(json.dumps({"type": "ping", "data": {}}))
+        assert await closed_with(ws) == 4429

@@ -9,11 +9,16 @@ from fastapi import WebSocket
 log = logging.getLogger(__name__)
 
 
+class TooManyConnections(Exception):
+    """A connection cap was hit; the socket was not registered."""
+
+
 class ConnectionManager:
     """Registry of open sockets keyed by user id. One user may have several tabs open."""
 
     def __init__(self) -> None:
         self._sockets: dict[int, set[WebSocket]] = defaultdict(set)
+        self._ip_counts: dict[str, int] = defaultdict(int)
         self._lock = asyncio.Lock()
 
     @property
@@ -24,16 +29,37 @@ class ConnectionManager:
     def online_user_ids(self) -> list[int]:
         return sorted(uid for uid, socks in self._sockets.items() if socks)
 
-    async def connect(self, user_id: int, ws: WebSocket) -> bool:
-        """Register a socket. Returns True when the user just came online."""
+    @property
+    def total(self) -> int:
+        return sum(len(socks) for socks in self._sockets.values())
+
+    async def connect(
+        self, user_id: int, ws: WebSocket, ip: str = "", *, max_for_user: int = 0, max_per_ip: int = 0,
+        max_total: int = 0,
+    ) -> bool:
+        """Register a socket. Returns True when the user just came online.
+
+        Raises TooManyConnections (registering nothing) when a cap is hit; 0 means no cap.
+        """
         async with self._lock:
+            if max_total and self.total >= max_total:
+                raise TooManyConnections("the room is full")
+            if max_for_user and len(self._sockets.get(user_id, ())) >= max_for_user:
+                raise TooManyConnections("too many tabs open for this login")
+            if max_per_ip and self._ip_counts.get(ip, 0) >= max_per_ip:
+                raise TooManyConnections("too many connections from this network")
             was_online = bool(self._sockets.get(user_id))
             self._sockets[user_id].add(ws)
+            self._ip_counts[ip] += 1
             return not was_online
 
-    async def disconnect(self, user_id: int, ws: WebSocket) -> bool:
+    async def disconnect(self, user_id: int, ws: WebSocket, ip: str = "") -> bool:
         """Unregister a socket. Returns True when the user just went offline."""
         async with self._lock:
+            if ws in self._sockets.get(user_id, ()):
+                self._ip_counts[ip] -= 1
+                if self._ip_counts[ip] <= 0:
+                    del self._ip_counts[ip]
             socks = self._sockets.get(user_id)
             if not socks:
                 return False

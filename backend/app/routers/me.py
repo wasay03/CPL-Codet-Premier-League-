@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, UploadFile
 
-from ..auth import CurrentUserPwOk, SelfEditor, Session, hash_password, verify_password
+from ..auth import CurrentUserPwOk, SelfEditor, Session
+from ..passwords import check_password, hash_password_async
 from ..images import store_upload
 from ..schemas import MeOut, MePatch, PasswordIn
 from .auth import me_out
@@ -26,11 +27,11 @@ async def patch_me(body: MePatch, user: SelfEditor, session: Session, engine: En
 @router.post("/me/password", response_model=MeOut)
 async def change_password(body: PasswordIn, user: SelfEditor, session: Session) -> MeOut:
     user = await session.merge(user)
-    if not verify_password(body.current_password, user.password_hash):
+    if not await check_password(body.current_password, user.password_hash):
         raise HTTPException(400, "Current password is wrong")
     if body.new_password == body.current_password:
         raise HTTPException(400, "Choose a different password")
-    user.password_hash = hash_password(body.new_password)
+    user.password_hash = await hash_password_async(body.new_password)
     user.must_change_password = False
     await session.commit()
     return me_out(user)

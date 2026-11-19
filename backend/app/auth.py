@@ -7,7 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import get_settings
-from .db import get_session
+from .db import get_session, release_connection
 from .models import User
 from .passwords import hash_password, verify_password  # noqa: F401
 
@@ -52,6 +52,9 @@ async def _current_user_any(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> User:
     user = await user_from_token(session, creds.credentials if creds else None)
+    # Hand the pooled connection back before the route possibly waits on the engine lock.
+    # The user stays loaded (expire_on_commit=False).
+    await release_connection(session)
     if not user:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
     return user

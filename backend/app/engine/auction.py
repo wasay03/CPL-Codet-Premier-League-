@@ -19,6 +19,7 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from ..db import release_connection
 from ..models import AuctionSettings, AuctionState, AuditLog, Bid, Lot, Nomination, Player, Team, Tier, User
 from ..ws.manager import ConnectionManager
 from . import rules
@@ -175,6 +176,9 @@ class AuctionEngine:
         )
         if session is not None:  # reuse the request's connection: one connection per request
             row = (await session.execute(query)).first()
+            # Release it before close_lot (which waits on the lock and opens its own session),
+            # so a request never holds two pooled connections at once.
+            await release_connection(session)
         else:
             async with self.sm() as s:
                 row = (await s.execute(query)).first()

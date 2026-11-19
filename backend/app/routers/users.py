@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 
-from ..auth import AdminUser, Session, hash_password
+from ..auth import AdminUser, Session
+from ..passwords import hash_password_async
 from ..models import AuditLog, Team, User
 from ..schemas import UserPatch
 from .auth import me_out
@@ -34,7 +35,7 @@ async def patch_user(user_id: int, body: UserPatch, admin: AdminUser, session: S
         u.display_name = body.display_name.strip()
         changes["display_name"] = u.display_name
     if body.password:
-        u.password_hash = hash_password(body.password)
+        u.password_hash = await hash_password_async(body.password)
         # Personal logins must pick their own password; the shared viewer login keeps the admin's.
         u.must_change_password = u.role != "viewer"
         changes["password_reset"] = True

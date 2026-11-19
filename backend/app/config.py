@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from typing import Any
 from uuid import uuid4
@@ -36,9 +37,42 @@ class Settings(BaseSettings):
     timezone: str = "Asia/Karachi"  # env TIMEZONE (TZ is reserved on Vercel)
     bid_rate_per_sec: int = 5
 
+    # --- Abuse protection (see app/security.py). A real flood needs Cloudflare/the host's edge;
+    # these stop a single script from overwhelming the one app process.
+    # How many proxies sit in front of the app and append to X-Forwarded-For: Railway = 1,
+    # Cloudflare -> Railway = 2. The client IP is read that many entries from the right.
+    trusted_proxy_hops: int = 1
+    # Use Cloudflare's CF-Connecting-IP header. Only enable once the origin is reachable via Cloudflare alone.
+    trust_cf_connecting_ip: bool = False
+    # Every /api request, per client IP (an office behind one IP shares this, so keep it generous).
+    api_rate_per_sec: float = 30
+    api_burst: int = 300
+    max_body_bytes: int = 2 * 1024 * 1024  # uploads are capped at 1 MB; this covers multipart overhead
+    # Login: attempts per IP per minute, and failures per (IP, username) before a temporary lock.
+    login_attempts_per_min: int = 20
+    login_failures_before_lock: int = 5
+    login_lock_s: int = 300
+    # Password checks run in worker threads; this many at once, so a login burst can't eat every CPU.
+    bcrypt_concurrency: int = 2
+    # Live connections (WebSocket).
+    ws_max_per_user: int = 5  # tabs/devices per personal login
+    ws_max_viewer: int = 200  # the shared viewer login
+    ws_max_per_ip: int = 60
+    ws_max_total: int = 800
+    ws_msgs_per_sec: float = 10
+    ws_msg_burst: int = 30
+    # Interactive API docs at /docs. Off in production.
+    api_docs: bool = False
+
     @property
     def async_database_url(self) -> str:
         return to_async_url(self.database_url)
+
+    @property
+    def use_nullpool(self) -> bool:
+        """No app-side pool on serverless: each instance would otherwise keep its own pool of
+        connections open. Vercel sets VERCEL=1 at runtime, so this needs no manual setting there."""
+        return self.db_nullpool or os.environ.get("VERCEL") == "1"
 
     @property
     def transaction_pooler(self) -> bool:

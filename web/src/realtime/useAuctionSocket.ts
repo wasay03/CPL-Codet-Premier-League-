@@ -133,7 +133,9 @@ export function useAuctionSocket() {
           logout();
           return;
         }
-        const delay = Math.min(10000, 1000 * 2 ** retry.current);
+        // 4429: the server refused us for too many connections or messages, so back off longer.
+        // Polling keeps the room updating in the meantime.
+        const delay = Math.max(ev.code === 4429 ? 5000 : 0, Math.min(10000, 1000 * 2 ** retry.current));
         retry.current += 1;
         retryTimer = window.setTimeout(connect, delay);
       };

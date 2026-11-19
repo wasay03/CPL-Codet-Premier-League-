@@ -10,6 +10,7 @@ from .config import get_settings
 from .engine.auction import AuctionError
 from .routers import auction, auth, images, me, players, settings, teams, users
 from .routers.deps import engine_for
+from .security import GuardMiddleware
 from .ws import endpoint as ws_endpoint
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -25,7 +26,16 @@ async def lifespan(app: FastAPI):
     await engine.shutdown()
 
 
-app = FastAPI(title="CPL Auction", version="1.0.0", lifespan=lifespan, docs_url="/docs")
+_docs = get_settings().api_docs  # interactive docs only when API_DOCS=true (local dev)
+app = FastAPI(
+    title="CPL Auction",
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url="/docs" if _docs else None,
+    redoc_url=None,
+    openapi_url="/openapi.json" if _docs else None,
+)
+app.add_middleware(GuardMiddleware)  # per-IP rate limit + body-size cap on /api
 
 
 @app.exception_handler(AuctionError)

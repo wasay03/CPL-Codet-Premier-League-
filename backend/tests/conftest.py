@@ -7,6 +7,9 @@ os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://cpl:cpl@127.0.0.1:55
 os.environ["DB_NULLPOOL"] = "true"
 os.environ["REQUIRE_PASSWORD_CHANGE"] = "false"
 os.environ["BID_RATE_PER_SEC"] = "1000"
+# Tests fire requests far faster than people do; the rate-limit tests set tight limits themselves.
+os.environ["API_RATE_PER_SEC"] = "100000"
+os.environ["API_BURST"] = "100000"
 os.environ["BCRYPT_ROUNDS"] = "4"
 os.environ["STATIC_DIR"] = "/nonexistent"
 
@@ -17,6 +20,7 @@ from sqlalchemy import text  # noqa: E402
 from app.db import SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
 from app.seed import seed  # noqa: E402
+from app.security import reset_guards  # noqa: E402
 
 BACKEND = Path(__file__).resolve().parents[1]
 TABLES = "bids, nominations, audit_log, lots, players, users, auction_state, settings, teams, tiers, images"
@@ -49,6 +53,7 @@ async def client(fresh_data):
     # Each test runs on its own event loop; a fresh engine keeps its asyncio.Lock from being
     # bound to a previous test's loop (which raises once two calls contend for it).
     app.state.engine = None
+    reset_guards()
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:

@@ -7,6 +7,7 @@ The full design is in [docs/build-plan.md](docs/build-plan.md).
 ## Features
 
 - **Live auction room.** The countdown ring is driven by the server clock. The leading team is flagged in its own colour, there's a "SOLD / UNSOLD" overlay, a bid ladder, and a live feed. Online dots show who is connected.
+- **Abuse protection.** Password checks run off the event loop, so login spam can't stall bidding. Logins are rate-limited per IP, and wrong passwords lock that account from that IP for 5 minutes. Every `/api` route has a per-IP request budget and a 2 MB body cap. Live connections are capped per login, per IP and in total, and each socket's message rate is limited. Client IPs come only from headers our own proxy sets (`TRUSTED_PROXY_HOPS`). A real flood still needs an edge in front (e.g. Cloudflare); see `.env.example` for the settings.
 - **Light and dark themes.** Purple-and-white light mode by default, with a dark mode toggle in the header (remembered per browser).
 - **Money in PKR.** Every team gets a Rs 200M purse. Amounts show in millions (Rs 22M) and are stored as whole units of Rs 100,000.
 - **Server-side rules.** Base price per tier, IPL-style bid steps that grow with the price (or a flat step per tier), the no-self-raise rule, tier quotas, the squad cap, and a purse reserve so every team can still reach the minimum squad. Bids are serialised with row locks, so if two owners click the same amount at once, one bid is accepted and the other gets `STALE_AMOUNT`.
@@ -56,7 +57,7 @@ docker run -d --name cpl-pg -e POSTGRES_USER=cpl -e POSTGRES_PASSWORD=cpl -e POS
   -p 127.0.0.1:55450:5432 postgres:16
 docker exec cpl-pg psql -U cpl -c "create database cpl_test"
 
-# 2. API (http://127.0.0.1:8000, docs at /docs)
+# 2. API (http://127.0.0.1:8000; set API_DOCS=true in .env for docs at /docs)
 cd backend
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
