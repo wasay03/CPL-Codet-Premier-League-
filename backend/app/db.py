@@ -10,6 +10,7 @@ _settings = get_settings()
 engine = create_async_engine(
     _settings.async_database_url,
     pool_pre_ping=True,
+    connect_args=_settings.db_connect_args,
     **({"poolclass": NullPool} if _settings.db_nullpool else {"pool_size": 10, "max_overflow": 5}),
 )
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)

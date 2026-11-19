@@ -119,7 +119,7 @@ Vercel can't hold WebSockets or run background timers, so the app falls back aut
 
 Setup:
 
-1. **Database.** In Supabase, copy the **Session pooler** URI from **Connect** (not Direct, not Transaction pooler). Run `alembic upgrade head` once from your machine with that `DATABASE_URL` and the four `*_PASSWORD` variables set. Then enable row-level security on the `public` tables so Supabase's REST API can't read them. The app connects as the table owner, so RLS doesn't affect it.
+1. **Database.** In Supabase, copy the **Transaction pooler** URI (port 6543) from **Connect**. Don't use the Session pooler: it allows only 15 clients at once, and polling browsers on Vercel use them up, which crashes every request. On port 6543 the app turns off asyncpg's prepared-statement cache by itself; set `DB_PGBOUNCER=true` if your pooler uses another port. Run `alembic upgrade head` from your machine with that `DATABASE_URL` and the `*_PASSWORD` variables (including `VIEWER_PASSWORD`) set. **Vercel never runs migrations, so run this again after every deploy that adds one.** Then enable row-level security on the `public` tables so Supabase's REST API can't read them. The app connects as the table owner, so RLS doesn't affect it.
 2. **Backend project** (root `backend/`). Set `DATABASE_URL`, `DB_NULLPOOL=true`, `JWT_SECRET` and `TIMEZONE`. `TZ` is reserved on Vercel.
 3. **Frontend project** (root `web/`). [web/vercel.json](web/vercel.json) forwards `/api/*` to the backend's domain. Change it if your backend URL differs.
 

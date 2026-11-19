@@ -1,4 +1,6 @@
 from functools import lru_cache
+from typing import Any
+from uuid import uuid4
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -26,6 +28,10 @@ class Settings(BaseSettings):
 
     require_password_change: bool = True
     db_nullpool: bool = False
+    # Behind pgbouncer in transaction mode (Supabase "Transaction pooler", port 6543), a connection
+    # can change between statements, so asyncpg must not cache or reuse prepared statements.
+    # Switched on automatically for port 6543; set DB_PGBOUNCER=true for other poolers.
+    db_pgbouncer: bool = False
     static_dir: str = "static"
     timezone: str = "Asia/Karachi"  # env TIMEZONE (TZ is reserved on Vercel)
     bid_rate_per_sec: int = 5
@@ -33,6 +39,20 @@ class Settings(BaseSettings):
     @property
     def async_database_url(self) -> str:
         return to_async_url(self.database_url)
+
+    @property
+    def transaction_pooler(self) -> bool:
+        return self.db_pgbouncer or ":6543/" in self.database_url
+
+    @property
+    def db_connect_args(self) -> dict[str, Any]:
+        if not self.transaction_pooler:
+            return {}
+        return {
+            "statement_cache_size": 0,  # asyncpg's own cache
+            "prepared_statement_cache_size": 0,  # SQLAlchemy's cache
+            "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",  # never collide across clients
+        }
 
 
 @lru_cache
