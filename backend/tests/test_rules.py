@@ -87,3 +87,22 @@ def test_drop_tier_cascade():
 def test_full_squad_at_base_costs_760():
     cost = sum(t.base_price * t.max_per_team for t in TIERS)
     assert cost == 760
+
+
+def test_exhausted_tiers_by_quota_and_squad_cap():
+    teams = [TeamPosition(i, 500, {1: 2}) for i in (1, 2, 3)]
+    assert rules.exhausted_tiers(teams, TIERS, CFG) == {1}
+    # One team still has a Platinum slot -> the tier stays open.
+    teams[2] = TeamPosition(3, 500, {1: 1})
+    assert rules.exhausted_tiers(teams, TIERS, CFG) == set()
+    # ...unless that team's squad is already full.
+    teams[2] = TeamPosition(3, 500, {1: 1, 2: 2, 3: 2, 4: 2, 5: 1, 6: 1})
+    assert 1 in rules.exhausted_tiers(teams, TIERS, CFG)
+    assert rules.exhausted_tiers([], TIERS, CFG) == set()
+
+
+def test_drop_target_skips_exhausted_tiers():
+    assert rules.drop_target(TIERS[0], TIERS, {1}) == (TIERS[1], 1)
+    assert rules.drop_target(TIERS[0], TIERS, {1, 2, 3}) == (TIERS[3], 3)
+    assert rules.drop_target(TIERS[3], TIERS, {4, 5}) == (None, 1)
+    assert rules.drop_target(TIERS[4], TIERS, {5}) == (None, 0)

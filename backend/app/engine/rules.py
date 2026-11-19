@@ -126,3 +126,32 @@ def drop_tier(current: TierRule, tiers: Sequence[TierRule]) -> TierRule | None:
     """The next tier down by rank, or None when the player was already in the lowest tier."""
     lower = sorted((t for t in tiers if t.rank > current.rank), key=lambda t: t.rank)
     return lower[0] if lower else None
+
+
+def tier_has_buyer(teams: Sequence[TeamPosition], tier: TierRule, cfg: RuleConfig) -> bool:
+    """True while at least one team still has a slot in `tier` and room in its squad."""
+    return any(
+        t.tier_counts.get(tier.id, 0) < tier.max_per_team and t.squad_size < cfg.max_squad for t in teams
+    )
+
+
+def exhausted_tiers(teams: Sequence[TeamPosition], tiers: Sequence[TierRule], cfg: RuleConfig) -> set[int]:
+    """Tiers no team can buy into any more: every team has hit that tier's quota or the squad cap."""
+    if not teams:
+        return set()
+    return {t.id for t in tiers if not tier_has_buyer(teams, t, cfg)}
+
+
+def drop_target(
+    current: TierRule, tiers: Sequence[TierRule], exhausted: set[int]
+) -> tuple[TierRule | None, int]:
+    """Where a player in an exhausted tier lands: the first lower tier that still has a buyer.
+
+    Returns (tier, tiers dropped). The tier is None when nothing below has an open slot
+    (the player goes to the unsold pool).
+    """
+    lower = sorted((t for t in tiers if t.rank > current.rank), key=lambda t: t.rank)
+    for steps, t in enumerate(lower, start=1):
+        if t.id not in exhausted:
+            return t, steps
+    return None, len(lower)

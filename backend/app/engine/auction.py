@@ -112,6 +112,54 @@ class AuctionEngine:
         teams = (await s.scalars(select(Team))).all()
         return all(sum(counts.get(t.id, {}).values()) >= settings.max_squad for t in teams)
 
+    async def _drop_exhausted(
+        self, s: AsyncSession, state: AuctionState, settings: AuctionSettings, tiers: list[Tier], user: User | None
+    ) -> dict[str, Any] | None:
+        """Send every queued player in a tier no team can buy into down to the next open tier.
+
+        A tier is exhausted once every team has filled its quota there (or its squad). Its remaining
+        players can never be sold, so they skip the block and drop at once, cascading past further
+        exhausted tiers. With nowhere left to go (or in the accelerated round) they go to the pool.
+        Returns a `tier_closed` event, or None when nothing moved.
+        """
+        teams = (await s.scalars(select(Team))).all()
+        counts = await tier_counts(s)
+        rule_tiers = [tier_rule(t) for t in tiers]
+        dead = rules.exhausted_tiers([position(t, counts) for t in teams], rule_tiers, rule_config(settings))
+        if not dead:
+            return None
+        queued = (
+            await s.execute(
+                select(Player)
+                .where(Player.status == "queued", Player.current_tier_id.in_(dead))
+                .order_by(Player.queue_pos, Player.id)
+                .with_for_update()
+            )
+        ).scalars().all()
+        if not queued:
+            return None
+
+        by_id = {t.id: t for t in rule_tiers}
+        moves: list[dict[str, Any]] = []
+        # Highest tier first, so players keep their relative order in the tier they land in.
+        for p in sorted(queued, key=lambda p: (by_id[p.current_tier_id].rank, p.queue_pos, p.id)):
+            from_tier = p.current_tier_id
+            target, steps = rules.drop_target(by_id[from_tier], rule_tiers, dead)
+            if state.status == "accelerated" or target is None:
+                p.status = "unsold_pool"
+                p.drop_count += steps
+                to_tier = None
+            else:
+                p.current_tier_id = target.id
+                p.drop_count += steps
+                p.queue_pos = await self._back_pos(s, target.id)
+                to_tier = target.id
+            await s.flush()
+            moves.append({"player_id": p.id, "player_name": p.name, "from_tier_id": from_tier, "to_tier_id": to_tier})
+        await s.execute(delete(Nomination).where(Nomination.player_id.in_([m["player_id"] for m in moves])))
+        self._audit(s, user, "tier_exhausted", {"tier_ids": sorted(dead), "moves": moves})
+        return {"tier_ids": sorted(dead), "moves": moves}
+
     # ------------------------------------------------------------------ lifecycle
 
     async def tick(self, session: AsyncSession | None = None) -> None:
@@ -161,9 +209,13 @@ class AuctionEngine:
                 await s.execute(update(Team).values(purse_remaining=settings.purse))
                 state.status = "running"
                 state.resume_status = None
+                events: Events = [("auction_status", {"status": "running"})]
+                # A tier with a zero quota can never sell, so clear it before the first lot.
+                if closed := await self._drop_exhausted(s, state, settings, await load_tiers(s), user):
+                    events.append(("tier_closed", closed))
                 await self._bump(state)
                 self._audit(s, user, "auction_start")
-            await self.publish([("auction_status", {"status": "running"})])
+            await self.publish(events)
 
     async def pause(self, user: User) -> None:
         async with self.lock:
@@ -444,6 +496,8 @@ class AuctionEngine:
                 event["player"] = player_dict(player)
                 state.current_lot_id = None
                 events: Events = [("lot_closed", event)]
+                if closed := await self._drop_exhausted(s, state, settings, tiers, user):
+                    events.append(("tier_closed", closed))
 
                 if await self._should_finish(s, state, settings):
                     state.status = "finished"

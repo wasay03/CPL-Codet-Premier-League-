@@ -133,6 +133,64 @@ async def test_drop_cascade_to_pool(client, auth):
     assert rows == [("unsold_pool", 4)]
 
 
+
+async def set_tier(client, auth, tier_id, **changes):
+    s = (await client.get("/api/settings", headers=auth["admin"])).json()
+    for t in s["tiers"]:
+        if t["id"] == tier_id:
+            t.update(changes)
+    r = await client.put("/api/settings", json=s, headers=auth["admin"])
+    assert r.status_code == 200, r.text
+
+
+async def test_exhausted_tier_drops_remaining_players(client, auth):
+    await set_tier(client, auth, 1, max_per_team=1)  # 3 Platinum slots, 6 Platinum players
+    await admin_post(client, auth, "start")
+    for owner in ("owner1", "owner2"):
+        lot = await admin_post(client, auth, "next")
+        assert (await bid(client, auth, owner, lot["lot_id"], 200)).status_code == 200
+        await admin_post(client, auth, "hammer")
+    snap = await state(client, auth)
+    left = [p["id"] for p in snap["queues"]["1"]]
+    assert len(left) == 4  # one slot still open -> nothing moves yet
+
+    lot = await admin_post(client, auth, "next")
+    assert (await bid(client, auth, "owner3", lot["lot_id"], 200)).status_code == 200
+    await admin_post(client, auth, "hammer")
+    snap = await state(client, auth)
+    assert snap["queues"].get("1", []) == []
+    still_queued = [i for i in left if i != lot["player"]["id"]]
+    diamond_tail = [p["id"] for p in snap["queues"]["2"]][-len(still_queued):]
+    assert diamond_tail == still_queued  # same order, at the back of Diamond
+    assert all(p["drop_count"] == 1 for p in snap["queues"]["2"][-len(still_queued):])
+    audit = (await client.get("/api/audit", headers=auth["admin"])).json()
+    assert any(a["action"] == "tier_exhausted" for a in audit)
+
+    # The next lot comes from Diamond at the Diamond base price.
+    assert (await admin_post(client, auth, "next"))["opening_price"] == 100
+
+
+async def test_exhausted_drop_cascades_past_closed_tiers(client, auth):
+    await set_tier(client, auth, 2, max_per_team=0)  # Diamond can never sell
+    await set_tier(client, auth, 1, max_per_team=0)  # nor Platinum
+    await admin_post(client, auth, "start")
+    snap = await state(client, auth)
+    assert snap["queues"].get("1", []) == [] and snap["queues"].get("2", []) == []
+    platinum = await sql("select drop_count from players where original_tier_id = 1")
+    assert {r[0] for r in platinum} == {2}  # Platinum -> (Diamond) -> Gold
+    assert (await admin_post(client, auth, "next"))["opening_price"] == 50
+
+
+async def test_unsold_into_exhausted_tier_falls_through_to_pool(client, auth):
+    await sql("delete from players where id not in (select id from players order by id limit 1)")
+    for tier_id in (2, 3, 4, 5):
+        await set_tier(client, auth, tier_id, max_per_team=0)
+    await admin_post(client, auth, "start")
+    lot = await admin_post(client, auth, "next")
+    await admin_post(client, auth, "hammer")  # unsold -> Diamond, which is closed -> pool
+    rows = await sql("select status, drop_count from players where id = :i", i=lot["player"]["id"])
+    assert rows == [("unsold_pool", 4)]
+
 async def test_timer_closes_lot(client, auth):
     await set_rules(client, auth, opening_timer_s=1, reset_timer_s=1)
     await admin_post(client, auth, "start")

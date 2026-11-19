@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import type { Snapshot } from "../api/types";
 import { useSession } from "../lib/session";
+import { toast } from "../lib/toast";
 import { useAuction } from "./auctionStore";
 import { POLL_MS, refreshSnapshot, setPollQueryClient } from "./poll";
 
@@ -75,6 +76,20 @@ export function useAuctionSocket() {
             });
           }
           qc.invalidateQueries({ queryKey: ["history"] });
+          break;
+        }
+        case "tier_closed": {
+          // Every team filled its quota in these tiers, so their remaining players dropped automatically.
+          const d = msg.data as { tier_ids: number[]; moves: { player_name: string; to_tier_id: number | null }[] };
+          const full = d.tier_ids.map((id) => tierName(snap, id)).join(", ");
+          const byTarget = new Map<number | null, string[]>();
+          for (const m of d.moves) byTarget.set(m.to_tier_id, [...(byTarget.get(m.to_tier_id) ?? []), m.player_name]);
+          for (const [to, names] of byTarget) {
+            const where = to == null ? "go to the unsold pool" : `drop to ${tierName(snap, to)}`;
+            st.pushFeed({ kind: "unsold", text: `${full} picks exhausted — ${names.join(", ")} ${where}` });
+          }
+          toast.info(`${full} picks exhausted — ${d.moves.length} player${d.moves.length === 1 ? "" : "s"} moved down`);
+          qc.invalidateQueries({ queryKey: ["players"] });
           break;
         }
         case "sale_undone":
