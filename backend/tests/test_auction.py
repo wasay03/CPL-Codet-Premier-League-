@@ -49,12 +49,34 @@ async def test_bid_sell_and_purse(client, auth):
     assert closed["result"] == "sold" and closed["team_id"] == 2 and closed["price"] == 220
     snap = await state(client, auth)
     t2 = next(t for t in snap["teams"] if t["id"] == 2)
-    assert t2["purse_remaining"] == 780 and t2["squad_size"] == 1
+    assert t2["purse_remaining"] == 1780 and t2["squad_size"] == 1
     assert t2["squad"][0]["name"] == lot["player"]["name"]
     assert snap["lot"] is None
     r = await bid(client, auth, "owner1", lid, 240)
     assert r.json()["detail"] == "LOT_CLOSED"
 
+
+
+async def test_ipl_style_bid_steps(client, auth):
+    """Default slabs: +5 under 100, +10 to 200, +20 to 500, +25 above (units of Rs 100,000)."""
+    await admin_post(client, auth, "start")
+    lot = await admin_post(client, auth, "next")  # Platinum, opens at 200 (Rs 20M)
+    amounts, owners = [], ["owner1", "owner2"]
+    amount = lot["opening_price"]
+    for i in range(18):
+        r = await bid(client, auth, owners[i % 2], lot["lot_id"], amount)
+        assert r.status_code == 200, r.text
+        amounts.append(amount)
+        amount = r.json()["next_bid"]
+    steps = {b - a for a, b in zip(amounts, amounts[1:])}
+    assert amounts[:3] == [200, 220, 240] and steps == {20, 25}
+    assert all(b - a == 25 for a, b in zip(amounts, amounts[1:]) if a >= 500)
+
+    csv = (await client.get("/api/export/results.csv", headers=auth["admin"])).text
+    assert "price_rs_million" in csv and "Team One,200" in csv  # purse still Rs 200M before the sale
+    await admin_post(client, auth, "hammer")
+    csv = (await client.get("/api/export/results.csv", headers=auth["admin"])).text
+    assert f",{amounts[-1] / 10:g}," in csv
 
 async def test_bid_extends_clock(client, auth):
     await set_rules(client, auth, opening_timer_s=5, reset_timer_s=15)
@@ -232,7 +254,7 @@ async def test_undo_last_sale(client, auth):
     undone = await admin_post(client, auth, "undo-sale")
     assert undone["price"] == 200
     snap = await state(client, auth)
-    assert snap["teams"][0]["purse_remaining"] == 1000 and snap["teams"][0]["squad_size"] == 0
+    assert snap["teams"][0]["purse_remaining"] == 2000 and snap["teams"][0]["squad_size"] == 0
     assert snap["queues"]["1"][0]["id"] == lot["player"]["id"]
     audit = (await client.get("/api/audit", headers=auth["admin"])).json()
     assert any(a["action"] == "undo_sale" for a in audit)
@@ -278,7 +300,7 @@ async def test_reset(client, auth):
     await admin_post(client, auth, "reset", confirm="RESET")
     snap = await state(client, auth)
     assert snap["status"] == "not_started" and not snap["settings"]["locked"]
-    assert all(t["purse_remaining"] == 1000 for t in snap["teams"]) and snap["queued_count"] == 41
+    assert all(t["purse_remaining"] == 2000 for t in snap["teams"]) and snap["queued_count"] == 41
     assert (await sql("select count(*) from lots"))[0][0] == 0
 
 
@@ -308,7 +330,7 @@ async def test_full_simulated_auction(client, auth, eng):
         assert team["squad_size"] <= 9
         for tier_id, n in team["tier_counts"].items():
             assert n <= tiers[int(tier_id)]["max_per_team"]
-        assert team["purse_remaining"] + sum(p["sold_price"] for p in team["squad"]) == 1000
+        assert team["purse_remaining"] + sum(p["sold_price"] for p in team["squad"]) == 2000
     async with SessionLocal() as s:
         open_lots = (await s.scalars(select(Lot).where(Lot.status == "open"))).all()
     assert not open_lots

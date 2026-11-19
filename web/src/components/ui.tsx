@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { imageUrl } from "../api/client";
 import type { Team, Tier } from "../api/types";
+import { fmtM } from "../lib/money";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline";
 
@@ -211,6 +212,19 @@ export function Page({ title, subtitle, actions, children }: { title: string; su
       </div>
       {children}
     </div>
+  );
+}
+
+/** A rupee amount for big number displays: small "Rs", the figure, small "M". */
+export function Money({ value, className }: { value: number | null | undefined; className?: string }) {
+  if (value == null) return <span className={className}>—</span>;
+  const figure = fmtM(value).slice(0, -1);
+  return (
+    <span className={clsx("whitespace-nowrap tabular-nums", className)}>
+      <span className="mr-[.15em] text-[.5em] font-semibold opacity-60">Rs</span>
+      {figure}
+      <span className="ml-[.05em] text-[.6em]">M</span>
+    </span>
   );
 }
 

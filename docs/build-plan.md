@@ -26,23 +26,23 @@ The three owner accounts are seeded as `owner1`, `owner2` and `owner3`, each bou
 
 ## Auction rules
 
-Every team starts with the same 1000-point purse and builds a squad of 7 to 9 players under per-tier quotas. These are the defaults seeded from the notes. The admin can change any of them before the auction starts, and they lock once it begins.
+Money is in Pakistani rupees and shown in millions (Rs 22M). Every team starts with the same Rs 200M purse and builds a squad of 7 to 9 players under per-tier quotas. (The API stores amounts as whole units of Rs 100,000, so 220 = Rs 22M.) These are the defaults seeded from the notes. The admin can change any of them before the auction starts, and they lock once it begins.
 
-| Tier | Max per team | Base price | Bid step | Players in pool | Slots across 3 teams |
-| --- | --- | --- | --- | --- | --- |
-| Platinum | 2 | 200 | 20 | 6 | 6 |
-| Diamond | 2 | 100 | 10 | 7 | 6 |
-| Gold | 2 | 50 | 5 | 9 | 6 |
-| Silver | 2 | 25 | 5 | 10 | 6 |
-| Emerging | 1 | 10 | 2 | 9 | 3 |
-| **Total** | **9** |  |  | **41** | **27** |
+| Tier | Max per team | Base price | Players in pool | Slots across 3 teams |
+| --- | --- | --- | --- | --- |
+| Platinum | 2 | Rs 20M | 6 | 6 |
+| Diamond | 2 | Rs 10M | 7 | 6 |
+| Gold | 2 | Rs 5M | 9 | 6 |
+| Silver | 2 | Rs 2.5M | 10 | 6 |
+| Emerging | 1 | Rs 1M | 9 | 3 |
+| **Total** | **9** |  | **41** | **27** |
 
-A full 9-player squad bought at base prices costs 760, which leaves 240 of headroom for bidding wars. With 41 players and 27 slots, at least 14 players will finish unsold.
+A full 9-player squad bought at base prices costs Rs 76M, which leaves Rs 124M of headroom for bidding wars. With 41 players and 27 slots, at least 14 players will finish unsold.
 
 ### How bidding works
 
 1. **Order.** Tiers run top-down: Platinum, Diamond, Gold, Silver, Emerging. Within a tier, the admin plays players in a shuffled order or picks one by hand.
-2. **Opening bid.** The first bid on a player is the tier's base price. Each later bid adds the tier's bid step.
+2. **Opening bid and steps.** The first bid on a player is the tier's base price. Each later bid adds an IPL-style step that grows with the price: +Rs 0.5M under Rs 10M, +Rs 1M up to Rs 20M, +Rs 2M up to Rs 50M, and +Rs 2.5M above that. The admin can switch these bands off and use a flat step per tier instead.
 3. **Timer.** 30 seconds for the opening bid. Each new bid resets the clock to 15 seconds. The server owns the clock; clients only display it.
 4. **No self-raise.** The team holding the current high bid cannot bid again until someone outbids it.
 5. **Tier quota.** A team that already holds its maximum for the player's tier cannot bid.
@@ -55,8 +55,8 @@ A full 9-player squad bought at base prices costs 760, which leaves 240 of headr
 
 ### What comes from the IPL
 
-- **Equal purse, set squad range.** IPL 2026 gave every franchise the same purse and a squad of 18 to 25 ([ESPNcricinfo](https://www.espncricinfo.com/ci/content/story/1515453.html)). CPL scales this to 1000 points and 7 to 9 players.
-- **Increments that rise with price.** IPL bid steps grow as the price climbs: 5 lakh up to 1 crore, 10 lakh from 1 to 2 crore, 20 lakh from 2 to 3 crore ([Business Today](https://www.businesstoday.in/amp/sports/ipl/story/ipl-2025-mega-auction-dates-players-and-team-purses-everything-you-need-to-know-454814-2024-11-23)). CPL uses one flat step per tier by default, with optional price slabs the admin can switch on.
+- **Equal purse, set squad range.** IPL 2026 gave every franchise the same purse and a squad of 18 to 25 ([ESPNcricinfo](https://www.espncricinfo.com/ci/content/story/1515453.html)). CPL scales this to Rs 200M and 7 to 9 players.
+- **Increments that rise with price.** IPL bid steps grow as the price climbs: 5 lakh up to 1 crore, 10 lakh from 1 to 2 crore, 20 lakh from 2 to 3 crore ([Business Today](https://www.businesstoday.in/amp/sports/ipl/story/ipl-2025-mega-auction-dates-players-and-team-purses-everything-you-need-to-know-454814-2024-11-23)). CPL uses the same shape by default (in Rs millions), with a flat per-tier step as the alternative.
 - **Accelerated rounds.** In IPL 2026, franchises named unsold players to bring back in accelerated rounds ([ESPNcricinfo](https://www.espncricinfo.com/ci/content/story/1515453.html)). Rule 10 copies this.
 - **Left out.** Retentions and Right to Match need a previous season's squads, so they don't apply to a first edition. The silent tie-breaker isn't needed: the server orders bids by arrival, so two teams can never tie.
 

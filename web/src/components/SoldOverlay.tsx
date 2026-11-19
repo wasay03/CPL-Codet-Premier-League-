@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
 import { useAuction } from "../realtime/auctionStore";
 import { TeamLogo } from "./ui";
+import { pkr } from "../lib/money";
 
 export function SoldOverlay() {
   const overlay = useAuction((s) => s.overlay);
@@ -50,7 +51,7 @@ export function SoldOverlay() {
                 <div className="mt-5 inline-flex items-center justify-center gap-3 rounded-full bg-white/10 py-2 pl-2 pr-5 text-xl text-white/85 ring-1 ring-white/15">
                   {team && <TeamLogo team={team} size={40} />}
                   <span>
-                    to <b className="text-white">{team?.name}</b> for <b className="font-display text-3xl text-[#f5c242]">{overlay.price}</b>
+                    to <b className="text-white">{team?.name}</b> for <b className="font-display text-3xl text-[#f5c242]">{pkr(overlay.price)}</b>
                   </span>
                 </div>
               </>

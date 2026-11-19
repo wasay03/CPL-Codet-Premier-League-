@@ -5,6 +5,7 @@ import { useSession } from "../lib/session";
 import { toast } from "../lib/toast";
 import { useAuction } from "./auctionStore";
 import { POLL_MS, refreshSnapshot, setPollQueryClient } from "./poll";
+import { pkr } from "../lib/money";
 
 type Msg = { type: string; version: number; data: any };
 
@@ -52,12 +53,12 @@ export function useAuctionSocket() {
           break;
         case "lot_opened":
           st.syncClock(msg.data.server_now);
-          st.pushFeed({ kind: "info", text: `${msg.data.player.name} is on the block at ${msg.data.opening_price}` });
+          st.pushFeed({ kind: "info", text: `${msg.data.player.name} is on the block at ${pkr(msg.data.opening_price)}` });
           break;
         case "bid_placed":
           st.syncClock(msg.data.server_now);
           if (msg.data.user_id === useSession.getState().me?.id) st.setPending(false);
-          st.pushFeed({ kind: "bid", text: `${teamName(snap, msg.data.team_id)} bid ${msg.data.amount}`, teamId: msg.data.team_id });
+          st.pushFeed({ kind: "bid", text: `${teamName(snap, msg.data.team_id)} bid ${pkr(msg.data.amount)}`, teamId: msg.data.team_id });
           break;
         case "bid_rejected":
           st.reject(msg.data.reason);
@@ -67,7 +68,7 @@ export function useAuctionSocket() {
           const name = d.player?.name ?? "Player";
           if (d.result === "sold") {
             st.showOverlay({ result: "sold", playerName: name, teamId: d.team_id, price: d.price });
-            st.pushFeed({ kind: "sold", text: `${name} SOLD to ${teamName(snap, d.team_id)} for ${d.price}`, teamId: d.team_id });
+            st.pushFeed({ kind: "sold", text: `${name} SOLD to ${teamName(snap, d.team_id)} for ${pkr(d.price)}`, teamId: d.team_id });
           } else {
             st.showOverlay({ result: "unsold", playerName: name, droppedToTierId: d.dropped_to_tier_id, toPool: d.to_pool });
             st.pushFeed({
@@ -93,7 +94,7 @@ export function useAuctionSocket() {
           break;
         }
         case "sale_undone":
-          st.pushFeed({ kind: "undo", text: `Sale undone: ${msg.data.player_name} (${msg.data.price}) back to the queue` });
+          st.pushFeed({ kind: "undo", text: `Sale undone: ${msg.data.player_name} (${pkr(msg.data.price)}) back to the queue` });
           qc.invalidateQueries({ queryKey: ["history"] });
           break;
         case "auction_status":

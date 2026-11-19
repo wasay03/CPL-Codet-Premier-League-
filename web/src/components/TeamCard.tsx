@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { Link } from "react-router-dom";
 import type { Settings, Team, Tier } from "../api/types";
-import { TeamLogo } from "./ui";
+import { Money, TeamLogo } from "./ui";
 
 export function TeamCard({ team, tiers, settings, leading, mine, compact }: {
   team: Team; tiers: Tier[]; settings: Settings; leading?: boolean; mine?: boolean; compact?: boolean;
@@ -37,11 +37,11 @@ export function TeamCard({ team, tiers, settings, leading, mine, compact }: {
       <div className="mt-4 grid grid-cols-3 gap-2 text-center">
         <div className="rounded-xl bg-well/70 py-2">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Purse</div>
-          <div className="font-display text-lg font-bold tabular-nums">{team.purse_remaining}</div>
+          <Money value={team.purse_remaining} className="block font-display text-lg font-bold" />
         </div>
         <div className="rounded-xl bg-brand-soft/70 py-2">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-ink/80">Max bid</div>
-          <div className="font-display text-lg font-bold tabular-nums text-brand-ink">{team.squad_size >= settings.max_squad ? "—" : team.max_bid}</div>
+          <Money value={team.squad_size >= settings.max_squad ? null : team.max_bid} className="block font-display text-lg font-bold text-brand-ink" />
         </div>
         <div className="rounded-xl bg-well/70 py-2">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Squad</div>

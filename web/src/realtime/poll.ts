@@ -7,6 +7,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Snapshot } from "../api/types";
 import { useAuction } from "./auctionStore";
+import { pkr } from "../lib/money";
 
 export const POLL_MS = 1000;
 
@@ -28,14 +29,14 @@ function announceChanges(prev: Snapshot, next: Snapshot) {
   const was = prev.lot;
   const now = next.lot;
   if (was && now?.id === was.id && now.high_bid != null && now.high_bid !== was.high_bid) {
-    st.pushFeed({ kind: "bid", text: `${teamName(next, now.high_team_id)} bid ${now.high_bid}`, teamId: now.high_team_id });
+    st.pushFeed({ kind: "bid", text: `${teamName(next, now.high_team_id)} bid ${pkr(now.high_bid)}`, teamId: now.high_team_id });
   }
   if (was && now?.id !== was.id) {
     const closed = next.recent.find((r) => r.id === was.id);
     const name = was.player.name;
     if (closed?.status === "sold") {
       st.showOverlay({ result: "sold", playerName: name, teamId: closed.team_id ?? undefined, price: closed.price ?? undefined });
-      st.pushFeed({ kind: "sold", text: `${name} SOLD to ${teamName(next, closed.team_id)} for ${closed.price}`, teamId: closed.team_id });
+      st.pushFeed({ kind: "sold", text: `${name} SOLD to ${teamName(next, closed.team_id)} for ${pkr(closed.price)}`, teamId: closed.team_id });
     } else if (closed?.status === "unsold") {
       st.showOverlay({ result: "unsold", playerName: name, droppedToTierId: closed.dropped_to_tier_id, toPool: closed.to_pool });
       st.pushFeed({
@@ -46,7 +47,7 @@ function announceChanges(prev: Snapshot, next: Snapshot) {
     queryClient?.invalidateQueries({ queryKey: ["history"] });
   }
   if (now && now.id !== was?.id) {
-    st.pushFeed({ kind: "info", text: `${now.player.name} is on the block at ${now.opening_price}` });
+    st.pushFeed({ kind: "info", text: `${now.player.name} is on the block at ${pkr(now.opening_price)}` });
   }
 }
 

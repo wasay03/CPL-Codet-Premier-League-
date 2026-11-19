@@ -4,6 +4,7 @@ import { Card, Empty, Page, Segmented, TierBadge } from "../components/ui";
 import { useSession } from "../lib/session";
 import { useAuction } from "../realtime/auctionStore";
 import { Loading } from "./Teams";
+import { pkr } from "../lib/money";
 
 export function HistoryPage() {
   const isAdmin = useSession((s) => s.me?.role === "admin");
@@ -69,7 +70,7 @@ function Lots() {
                   {l.status === "unsold" && <span className="text-muted">Unsold → {l.to_pool ? "pool" : drop?.name}</span>}
                   {l.status === "cancelled" && <span className="text-muted">Cancelled / undone</span>}
                 </td>
-                <td className="px-4 py-2.5 text-right font-display text-base font-bold tabular-nums text-brand-ink">{l.price ?? "—"}</td>
+                <td className="px-4 py-2.5 text-right font-display text-base font-bold tabular-nums text-brand-ink">{pkr(l.price)}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{l.bid_count}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{l.drop_count}</td>
                 <td className="px-4 py-2.5 text-right text-muted">{time(l.closed_at)}</td>

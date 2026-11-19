@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Clock, Crown } from "lucide-react";
 import type { Snapshot } from "../api/types";
-import { Avatar, Card, Eyebrow, TeamLogo, TierBadge } from "./ui";
+import { Avatar, Card, Eyebrow, Money, TeamLogo, TierBadge } from "./ui";
 import { Countdown } from "./Countdown";
+import { pkr } from "../lib/money";
 
 const ROLE_LABEL: Record<string, string> = {
   batter: "Batter",
@@ -54,7 +55,7 @@ export function OnTheBlock({ snap, msLeft }: { snap: Snapshot; msLeft: number })
               {p.batting_style && <Chip>Bat: {p.batting_style}</Chip>}
               {p.bowling_style && <Chip>Bowl: {p.bowling_style}</Chip>}
               <Chip>
-                Base <b className="text-fg">{lot.opening_price}</b>
+                Base <b className="text-fg">{pkr(lot.opening_price)}</b>
               </Chip>
             </div>
             {p.note && <p className="mt-3 max-w-md text-sm italic text-fg-2">“{p.note}”</p>}
@@ -74,9 +75,9 @@ export function OnTheBlock({ snap, msLeft }: { snap: Snapshot; msLeft: number })
                 key={lot.high_bid ?? "open"}
                 initial={{ y: 18, opacity: 0, scale: 0.92 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
-                className="mt-1 font-display text-7xl font-extrabold leading-none tracking-tight tabular-nums text-fg sm:text-8xl"
+                className="mt-1 font-display text-6xl font-extrabold leading-none tracking-tight text-fg sm:text-8xl"
               >
-                {lot.high_bid ?? lot.opening_price}
+                <Money value={lot.high_bid ?? lot.opening_price} />
               </motion.div>
             </AnimatePresence>
           </div>

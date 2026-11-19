@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { useSettings } from "../api/hooks";
 import type { Settings, Tier } from "../api/types";
 import { Button, Card, Field, Input, Modal, Page, SectionTitle, TierBadge } from "../components/ui";
+import { fromMillions, pkr, toMillions } from "../lib/money";
 import { toast } from "../lib/toast";
 import { refreshSnapshot } from "../realtime/poll";
 import { Loading } from "./Teams";
@@ -23,11 +24,14 @@ export function RulesPage() {
   const locked = data.locked;
 
   const num = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: Number(e.target.value) });
-  const tierNum = (i: number, k: keyof Tier) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const tierNum = (i: number, k: keyof Tier) => (e: React.ChangeEvent<HTMLInputElement>) => setTier(i, k, k === "name" ? e.target.value : Number(e.target.value));
+  const setTier = (i: number, k: keyof Tier, v: string | number) => {
     const tiers = [...form.tiers];
-    tiers[i] = { ...tiers[i], [k]: k === "name" ? e.target.value : Number(e.target.value) };
+    tiers[i] = { ...tiers[i], [k]: v };
     setForm({ ...form, tiers });
   };
+  const setSlab = (i: number, k: "from" | "step", v: number) =>
+    setForm({ ...form, slabs: form.slabs.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
 
   const maxSquadFromTiers = form.tiers.reduce((s, t) => s + t.max_per_team, 0);
   const fullAtBase = form.tiers.reduce((s, t) => s + t.max_per_team * t.base_price, 0);
@@ -53,12 +57,12 @@ export function RulesPage() {
           <Card className="p-5">
             <SectionTitle>Purse & squad</SectionTitle>
             <div className="grid gap-3 sm:grid-cols-3">
-              <Field label="Purse per team"><Input type="number" min={1} value={form.purse} onChange={num("purse")} /></Field>
+              <Field label="Purse per team (Rs millions)"><MoneyInput units={form.purse} min={0.1} onUnits={(v) => setForm({ ...form, purse: v })} /></Field>
               <Field label="Minimum squad"><Input type="number" min={0} value={form.min_squad} onChange={num("min_squad")} /></Field>
               <Field label="Maximum squad" hint={`Tier quotas add up to ${maxSquadFromTiers}`}><Input type="number" min={1} value={form.max_squad} onChange={num("max_squad")} /></Field>
             </div>
             <p className="mt-3 text-xs text-muted">
-              A full squad bought at base prices costs <b className="text-fg-2">{fullAtBase}</b>, leaving <b className="text-fg-2">{form.purse - fullAtBase}</b> for bidding wars.
+              A full squad bought at base prices costs <b className="text-fg-2">{pkr(fullAtBase)}</b>, leaving <b className="text-fg-2">{pkr(form.purse - fullAtBase)}</b> for bidding wars.
             </p>
           </Card>
 
@@ -71,8 +75,8 @@ export function RulesPage() {
                     <th className="pb-2 pr-2">Tier</th>
                     <th className="pb-2 pr-2">Name</th>
                     <th className="pb-2 pr-2">Max / team</th>
-                    <th className="pb-2 pr-2">Base price</th>
-                    <th className="pb-2">Bid step</th>
+                    <th className="pb-2 pr-2">Base price · millions</th>
+                    <th className="pb-2">{form.slabs_enabled ? "Bid step · off (bands on)" : "Bid step · millions"}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -81,8 +85,8 @@ export function RulesPage() {
                       <td className="py-1 pr-2"><TierBadge tier={t} /></td>
                       <td className="py-1 pr-2"><Input value={t.name} onChange={tierNum(i, "name")} /></td>
                       <td className="py-1 pr-2"><Input type="number" min={0} value={t.max_per_team} onChange={tierNum(i, "max_per_team")} /></td>
-                      <td className="py-1 pr-2"><Input type="number" min={1} value={t.base_price} onChange={tierNum(i, "base_price")} /></td>
-                      <td className="py-1"><Input type="number" min={1} value={t.bid_step} onChange={tierNum(i, "bid_step")} /></td>
+                      <td className="py-1 pr-2"><MoneyInput units={t.base_price} min={0.1} onUnits={(v) => setTier(i, "base_price", v)} /></td>
+                      <td className="py-1"><MoneyInput units={t.bid_step} min={0.1} onUnits={(v) => setTier(i, "bid_step", v)} disabled={form.slabs_enabled} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -99,19 +103,19 @@ export function RulesPage() {
           </Card>
 
           <Card className="p-5">
-            <SectionTitle>Price slabs</SectionTitle>
-            <Toggle checked={form.slabs_enabled} onChange={(v) => setForm({ ...form, slabs_enabled: v })} label="Use price slabs instead of the per-tier bid step" />
+            <SectionTitle>Bid steps</SectionTitle>
+            <Toggle checked={form.slabs_enabled} onChange={(v) => setForm({ ...form, slabs_enabled: v })} label="IPL-style price bands: the step grows as the price climbs (instead of a fixed step per tier)" />
             {form.slabs_enabled && (
               <div className="mt-4 space-y-2">
                 {form.slabs.map((s, i) => (
                   <div key={i} className="flex items-end gap-2">
-                    <Field label="From price"><Input type="number" min={0} value={s.from} onChange={(e) => setForm({ ...form, slabs: form.slabs.map((x, j) => (j === i ? { ...x, from: Number(e.target.value) } : x)) })} /></Field>
-                    <Field label="Step"><Input type="number" min={1} value={s.step} onChange={(e) => setForm({ ...form, slabs: form.slabs.map((x, j) => (j === i ? { ...x, step: Number(e.target.value) } : x)) })} /></Field>
+                    <Field label="From price (Rs M)"><MoneyInput units={s.from} min={0} onUnits={(v) => setSlab(i, "from", v)} /></Field>
+                    <Field label="Each bid adds (Rs M)"><MoneyInput units={s.step} min={0.1} onUnits={(v) => setSlab(i, "step", v)} /></Field>
                     <Button type="button" variant="ghost" onClick={() => setForm({ ...form, slabs: form.slabs.filter((_, j) => j !== i) })}><Trash2 size={16} /></Button>
                   </div>
                 ))}
                 <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, slabs: [...form.slabs, { from: 0, step: 5 }] })}>
-                  <Plus size={14} /> Add slab
+                  <Plus size={14} /> Add band
                 </Button>
               </div>
             )}
@@ -132,6 +136,24 @@ export function RulesPage() {
       </Card>
       <ResetModal open={resetOpen} onClose={() => setResetOpen(false)} />
     </Page>
+  );
+}
+
+/** A money field typed in Rs millions (2.5) and stored in API units of Rs 100,000 (25). */
+function MoneyInput({ units, onUnits, min, disabled }: { units: number; onUnits: (units: number) => void; min?: number; disabled?: boolean }) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted">Rs</span>
+      <Input
+        type="number"
+        min={min}
+        step={0.1}
+        disabled={disabled}
+        value={toMillions(units)}
+        onChange={(e) => onUnits(fromMillions(Number(e.target.value)))}
+        className="pl-9"
+      />
+    </div>
   );
 }
 

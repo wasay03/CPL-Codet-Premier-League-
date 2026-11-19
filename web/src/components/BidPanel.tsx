@@ -9,7 +9,8 @@ import { toast } from "../lib/toast";
 import { useAuction } from "../realtime/auctionStore";
 import { refreshSnapshot } from "../realtime/poll";
 import { sendBid } from "../realtime/useAuctionSocket";
-import { Eyebrow, Spinner } from "./ui";
+import { Eyebrow, Money, Spinner } from "./ui";
+import { pkr } from "../lib/money";
 
 export function BidPanel({ snap, msLeft }: { snap: Snapshot; msLeft: number }) {
   const me = useSession((s) => s.me);
@@ -54,12 +55,12 @@ export function BidPanel({ snap, msLeft }: { snap: Snapshot; msLeft: number }) {
         <div className="hidden min-w-0 flex-1 gap-6 sm:flex">
           <div>
             <Eyebrow>Your purse</Eyebrow>
-            <div className="font-display text-3xl font-bold tabular-nums">{team?.purse_remaining ?? "—"}</div>
+            <Money value={team?.purse_remaining} className="font-display text-3xl font-bold" />
           </div>
           <div className="w-px bg-line" />
           <div>
             <Eyebrow>Max bid</Eyebrow>
-            <div className="font-display text-3xl font-bold tabular-nums text-brand-ink">{team?.max_bid ?? "—"}</div>
+            <Money value={team?.max_bid} className="font-display text-3xl font-bold text-brand-ink" />
           </div>
         </div>
         <div className="flex-1 sm:flex-none">
@@ -74,10 +75,10 @@ export function BidPanel({ snap, msLeft }: { snap: Snapshot; msLeft: number }) {
             )}
           >
             {pending ? <Spinner className="h-6 w-6" /> : <Gavel size={24} strokeWidth={2.4} />}
-            {lot ? `Bid ${lot.next_bid}` : "Bid"}
+            {lot ? `Bid ${pkr(lot.next_bid)}` : "Bid"}
           </button>
           <div className={clsx("mt-1.5 h-4 text-center text-xs font-semibold", reason ? "text-muted" : "text-ok")}>
-            {reason ?? `Max bid ${team?.max_bid} · ${Math.ceil(msLeft / 1000)}s left`}
+            {reason ?? `Max bid ${pkr(team?.max_bid)} · ${Math.ceil(msLeft / 1000)}s left`}
           </div>
         </div>
       </div>

@@ -43,6 +43,9 @@ async def fresh_data(migrated_db):
 
 @pytest.fixture
 async def client(fresh_data):
+    # Each test runs on its own event loop; a fresh engine keeps its asyncio.Lock from being
+    # bound to a previous test's loop (which raises once two calls contend for it).
+    app.state.engine = None
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:

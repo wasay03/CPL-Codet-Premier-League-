@@ -10,10 +10,13 @@ from .config import get_settings
 from .passwords import hash_password
 from .models import AuctionSettings, AuctionState, Player, Team, Tier, User
 
-DEFAULT_PURSE = 1000
+# Money is stored as whole units of Rs 100,000 (one lakh); the UI shows it in millions,
+# so 10 units = Rs 1M. 2000 units = Rs 200M purse.
+DEFAULT_PURSE = 2000
 
 TIERS = [
-    # key, name, rank, max_per_team, base_price, bid_step
+    # key, name, rank, max_per_team, base_price, bid_step (step is the fallback when slabs are off)
+    # Base prices: Rs 20M, 10M, 5M, 2.5M, 1M.
     ("platinum", "Platinum", 1, 2, 200, 20),
     ("diamond", "Diamond", 2, 2, 100, 10),
     ("gold", "Gold", 3, 2, 50, 5),
@@ -44,10 +47,12 @@ TEAMS = [
     ("Team Three", "T3", "#16a34a"),
 ]
 
+# IPL-style bid steps that grow with the price: +0.5M under 10M, +1M to 20M, +2M to 50M, +2.5M above.
 DEFAULT_SLABS = [
     {"from": 0, "step": 5},
     {"from": 100, "step": 10},
     {"from": 200, "step": 20},
+    {"from": 500, "step": 25},
 ]
 
 
@@ -98,7 +103,7 @@ def seed(conn: Connection) -> None:
             max_squad=9,
             opening_timer_s=30,
             reset_timer_s=15,
-            slabs_enabled=False,
+            slabs_enabled=True,
             slabs=DEFAULT_SLABS,
             accelerated_enabled=True,
             locked=False,

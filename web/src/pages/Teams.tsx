@@ -2,9 +2,10 @@ import { ArrowLeft } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import type { Snapshot, Team } from "../api/types";
 import { TeamCard } from "../components/TeamCard";
-import { Avatar, Card, Empty, Page, Spinner, Stat, TeamLogo, TierBadge } from "../components/ui";
+import { Avatar, Card, Empty, Money, Page, Spinner, Stat, TeamLogo, TierBadge } from "../components/ui";
 import { useSession } from "../lib/session";
 import { useAuction } from "../realtime/auctionStore";
+import { pkr } from "../lib/money";
 
 export function TeamsPage() {
   const snap = useAuction((s) => s.snap);
@@ -45,10 +46,10 @@ export function TeamDetailPage() {
           </div>
         </div>
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat label="Purse left" value={team.purse_remaining} accent />
-          <Stat label="Spent" value={team.purse_spent} />
+          <Stat label="Purse left" value={<Money value={team.purse_remaining} />} accent />
+          <Stat label="Spent" value={<Money value={team.purse_spent} />} />
           <Stat label="Squad" value={`${team.squad_size}/${snap.settings.max_squad}`} />
-          <Stat label="Max bid" value={team.squad_size >= snap.settings.max_squad ? "—" : team.max_bid} />
+          <Stat label="Max bid" value={<Money value={team.squad_size >= snap.settings.max_squad ? null : team.max_bid} />} />
         </div>
       </Card>
       <SquadList snap={snap} team={team} showSlots />
@@ -79,7 +80,7 @@ function SquadList({ snap, team, showSlots }: { snap: Snapshot; team: Team; show
                   <li key={p.id} className="flex items-center gap-2.5">
                     <Avatar name={p.name} imageId={p.photo_image_id} size={26} />
                     <span className="flex-1 truncate text-sm font-medium">{p.name}</span>
-                    <span className="font-display text-base font-bold tabular-nums text-brand-ink">{p.sold_price}</span>
+                    <span className="font-display text-base font-bold tabular-nums text-brand-ink">{pkr(p.sold_price)}</span>
                   </li>
                 ))}
               </ul>

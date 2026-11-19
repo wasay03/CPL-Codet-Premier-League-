@@ -27,11 +27,11 @@ test("polling mode: live updates and lots close without a server timer", async (
 
   await admin.getByRole("button", { name: "Start auction" }).click();
   await admin.getByRole("button", { name: "Next player" }).click();
-  await expect(o1.getByRole("button", { name: /Bid 200/ })).toBeEnabled();
-  await o1.getByRole("button", { name: /Bid 200/ }).click();
-  await expect(o2.getByRole("button", { name: /Bid 220/ })).toBeEnabled();
-  await o2.getByRole("button", { name: /Bid 220/ }).click();
-  await expect(o1.getByRole("button", { name: /Bid 240/ })).toBeEnabled();
+  await expect(o1.getByRole("button", { name: /Bid Rs 20M/ })).toBeEnabled();
+  await o1.getByRole("button", { name: /Bid Rs 20M/ }).click();
+  await expect(o2.getByRole("button", { name: /Bid Rs 22M/ })).toBeEnabled();
+  await o2.getByRole("button", { name: /Bid Rs 22M/ }).click();
+  await expect(o1.getByRole("button", { name: /Bid Rs 24M/ })).toBeEnabled();
 
   // Nobody hammers: the clock runs out and the next poll closes the lot.
   await expect(o1.getByText("SOLD", { exact: true })).toBeVisible({ timeout: 15000 });
@@ -44,6 +44,6 @@ test("polling mode: live updates and lots close without a server timer", async (
 
   await o2.waitForTimeout(3200);
   await o2.getByRole("button", { name: "Live feed" }).click();
-  await expect(o2.getByText(/SOLD to Team Two for 220/)).toBeVisible();
+  await expect(o2.getByText(/SOLD to Team Two for Rs 22M/)).toBeVisible();
   await expect(o2.getByText("Auction running")).toBeVisible();
 });

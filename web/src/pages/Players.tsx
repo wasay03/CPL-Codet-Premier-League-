@@ -9,6 +9,7 @@ import { useSession } from "../lib/session";
 import { toast } from "../lib/toast";
 import { useAuction } from "../realtime/auctionStore";
 import { Loading } from "./Teams";
+import { pkr } from "../lib/money";
 
 const STATUS: Record<string, string> = { queued: "Queued", on_block: "On the block", sold: "Sold", unsold_pool: "Unsold pool" };
 const ROLES = ["batter", "bowler", "all-rounder", "wicket-keeper"];
@@ -146,7 +147,7 @@ export function PlayersPage() {
                       {team ? (
                         <span className="inline-flex items-center gap-2">
                           <span className="h-2 w-2 rounded-full" style={{ background: team.color }} />
-                          {team.name} · <b className="text-brand-ink">{p.sold_price}</b>
+                          {team.name} · <b className="text-brand-ink">{pkr(p.sold_price)}</b>
                         </span>
                       ) : (
                         <span className="text-faint">—</span>

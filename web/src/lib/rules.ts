@@ -1,4 +1,5 @@
 import type { Snapshot, Team } from "../api/types";
+import { pkr } from "./money";
 
 /** Plain-words reason an owner can't bid right now, or null when the bid button should be live. */
 export function bidBlockReason(snap: Snapshot, team: Team | undefined, msLeft: number): string | null {
@@ -13,7 +14,7 @@ export function bidBlockReason(snap: Snapshot, team: Team | undefined, msLeft: n
   if (team.squad_size >= snap.settings.max_squad) return `Squad full (${team.squad_size}/${snap.settings.max_squad})`;
   const tier = snap.tiers.find((t) => t.id === lot.tier_id);
   if (tier && (team.tier_counts[String(tier.id)] ?? 0) >= tier.max_per_team) return `${tier.name} slots full`;
-  if (lot.next_bid > team.max_bid) return `Over your max bid of ${team.max_bid}`;
+  if (lot.next_bid > team.max_bid) return `Over your max bid of ${pkr(team.max_bid)}`;
   return null;
 }
 

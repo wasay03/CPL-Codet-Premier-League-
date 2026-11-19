@@ -35,14 +35,14 @@ test("admin and owners run one lot end to end", async ({ browser }) => {
 
   await admin.getByRole("button", { name: "Start auction" }).click();
   await admin.getByRole("button", { name: "Next player" }).click();
-  await expect(o1.getByRole("button", { name: /Bid 200/ })).toBeEnabled();
+  await expect(o1.getByRole("button", { name: /Bid Rs 20M/ })).toBeEnabled();
 
-  await o1.getByRole("button", { name: /Bid 200/ }).click();
-  await expect(o2.getByRole("button", { name: /Bid 220/ })).toBeEnabled();
+  await o1.getByRole("button", { name: /Bid Rs 20M/ }).click();
+  await expect(o2.getByRole("button", { name: /Bid Rs 22M/ })).toBeEnabled();
   await expect(o1.getByText("You hold the high bid")).toBeVisible();
   if (SHOTS) await o1.screenshot({ path: `${SHOTS}/2-owner1-mobile.png` });
 
-  await o2.getByRole("button", { name: /Bid 220/ }).click();
+  await o2.getByRole("button", { name: /Bid Rs 22M/ }).click();
   await expect(admin.locator("text=Leading").first()).toBeVisible();
   if (SHOTS) await admin.screenshot({ path: `${SHOTS}/3-admin-live.png` });
   if (SHOTS) await o2.screenshot({ path: `${SHOTS}/4-owner2.png` });
@@ -53,7 +53,7 @@ test("admin and owners run one lot end to end", async ({ browser }) => {
 
   await o1.waitForTimeout(3500);
   await o1.goto("/teams");
-  await expect(o1.getByText("780").first()).toBeVisible();
+  await expect(o1.getByText(/178M/).first()).toBeVisible();
   if (SHOTS) await admin.goto("/admin/rules");
   if (SHOTS) await admin.screenshot({ path: `${SHOTS}/6-rules.png`, fullPage: true });
   if (SHOTS) await admin.goto("/players");

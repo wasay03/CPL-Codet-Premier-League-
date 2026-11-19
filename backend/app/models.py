@@ -93,7 +93,7 @@ class AuctionSettings(Base):
     __tablename__ = "settings"
 
     id: Mapped[int] = mapped_column(primary_key=True, default=1)
-    purse: Mapped[int] = mapped_column(Integer, default=1000)
+    purse: Mapped[int] = mapped_column(Integer, default=2000)  # units of Rs 100,000
     min_squad: Mapped[int] = mapped_column(Integer, default=7)
     max_squad: Mapped[int] = mapped_column(Integer, default=9)
     opening_timer_s: Mapped[int] = mapped_column(Integer, default=30)

@@ -8,7 +8,8 @@ The full design is in [docs/build-plan.md](docs/build-plan.md).
 
 - **Live auction room.** The countdown ring is driven by the server clock. The leading team is flagged in its own colour, there's a "SOLD / UNSOLD" overlay, a bid ladder, and a live feed. Online dots show who is connected.
 - **Light and dark themes.** Purple-and-white light mode by default, with a dark mode toggle in the header (remembered per browser).
-- **Server-side rules.** Base price and bid step per tier (with optional price slabs), the no-self-raise rule, tier quotas, the squad cap, and a purse reserve so every team can still reach the minimum squad. Bids are serialised with row locks, so if two owners click the same amount at once, one bid is accepted and the other gets `STALE_AMOUNT`.
+- **Money in PKR.** Every team gets a Rs 200M purse. Amounts show in millions (Rs 22M) and are stored as whole units of Rs 100,000.
+- **Server-side rules.** Base price per tier, IPL-style bid steps that grow with the price (or a flat step per tier), the no-self-raise rule, tier quotas, the squad cap, and a purse reserve so every team can still reach the minimum squad. Bids are serialised with row locks, so if two owners click the same amount at once, one bid is accepted and the other gets `STALE_AMOUNT`.
 - **Tier drops.** An unsold player drops one tier and takes that tier's base price. A player unsold in Emerging goes to the unsold pool.
 - **Accelerated round.** Owners nominate players from the unsold pool, and the admin re-offers them at the Emerging base price.
 - **Admin controls.** Start, pause/resume, next player (in order, random or a specific pick), hammer, +10 s, undo last sale, end, and reset (you type RESET to confirm). Every admin action is written to an audit log.

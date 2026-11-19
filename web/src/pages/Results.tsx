@@ -1,10 +1,11 @@
 import { Download } from "lucide-react";
 import { api } from "../api/client";
-import { Avatar, Button, Card, Page, TeamLogo, TierBadge } from "../components/ui";
+import { Avatar, Button, Card, Money, Page, TeamLogo, TierBadge } from "../components/ui";
 import { useSession } from "../lib/session";
 import { toast } from "../lib/toast";
 import { useAuction } from "../realtime/auctionStore";
 import { Loading } from "./Teams";
+import { pkr } from "../lib/money";
 
 export function ResultsPage() {
   const snap = useAuction((s) => s.snap);
@@ -36,8 +37,8 @@ export function ResultsPage() {
             </div>
             <div className="grid grid-cols-3 border-y border-line text-center">
               <div className="py-2"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Players</div><div className="font-display text-xl font-bold">{team.squad_size}</div></div>
-              <div className="border-x border-line py-2"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Spent</div><div className="font-display text-xl font-bold">{team.purse_spent}</div></div>
-              <div className="py-2"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Left</div><div className="font-display text-xl font-bold text-brand-ink">{team.purse_remaining}</div></div>
+              <div className="border-x border-line py-2"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Spent</div><Money value={team.purse_spent} className="block font-display text-xl font-bold" /></div>
+              <div className="py-2"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Left</div><Money value={team.purse_remaining} className="block font-display text-xl font-bold text-brand-ink" /></div>
             </div>
             <ul className="divide-y divide-line">
               {[...team.squad]
@@ -49,7 +50,7 @@ export function ResultsPage() {
                       <div className="mb-0.5 truncate text-sm font-semibold">{p.name}</div>
                       <TierBadge tier={snap.tiers.find((t) => t.id === p.tier_id)} />
                     </div>
-                    <span className="font-display text-lg font-bold tabular-nums text-brand-ink">{p.sold_price}</span>
+                    <span className="font-display text-lg font-bold tabular-nums text-brand-ink">{pkr(p.sold_price)}</span>
                   </li>
                 ))}
               {team.squad.length === 0 && <li className="px-4 py-6 text-center text-sm text-muted">No players yet</li>}

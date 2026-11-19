@@ -118,6 +118,11 @@ async def audit(_: AdminUser, session: Session, limit: int = 200) -> list[dict]:
     ]
 
 
+def _millions(units: int | None) -> str:
+    """Money is stored in units of Rs 100,000; the export shows Rs millions (220 -> "22")."""
+    return "" if units is None else f"{units / 10:g}"
+
+
 @router.get("/export/results.csv")
 async def export_results(_: AdminUser, session: Session) -> StreamingResponse:
     tz = ZoneInfo(get_settings().timezone)
@@ -126,16 +131,16 @@ async def export_results(_: AdminUser, session: Session) -> StreamingResponse:
     players = (await session.scalars(select(Player).order_by(Player.sold_price.desc().nulls_last()))).all()
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["team", "short_code", "player", "tier", "original_tier", "price", "drops"])
+    w.writerow(["team", "short_code", "player", "tier", "original_tier", "price_rs_million", "drops"])
     for team in teams:
         for p in players:
             if p.status == "sold" and p.sold_team_id == team.id:
                 w.writerow([team.name, team.short_code, p.name, tiers.get(p.current_tier_id),
-                            tiers.get(p.original_tier_id), p.sold_price, p.drop_count])
+                            tiers.get(p.original_tier_id), _millions(p.sold_price), p.drop_count])
     w.writerow([])
-    w.writerow(["team", "purse_remaining"])
+    w.writerow(["team", "purse_remaining_rs_million"])
     for team in teams:
-        w.writerow([team.name, team.purse_remaining])
+        w.writerow([team.name, _millions(team.purse_remaining)])
     w.writerow([])
     w.writerow(["unsold"])
     for p in players:

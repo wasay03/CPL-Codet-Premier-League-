@@ -8,6 +8,7 @@ import { toast } from "../lib/toast";
 import { useAuction } from "../realtime/auctionStore";
 import { refreshSnapshot } from "../realtime/poll";
 import { Avatar, Button, Card, Empty, TierBadge } from "./ui";
+import { pkr } from "../lib/money";
 
 type Tab = "queue" | "pool" | "feed";
 
@@ -60,7 +61,7 @@ export function SidePanels({ snap }: { snap: Snapshot }) {
                 <div key={t.id}>
                   <div className="mb-2 flex items-center gap-2">
                     <TierBadge tier={t} />
-                    <span className="text-xs text-muted">{list.length} waiting · base {t.base_price}</span>
+                    <span className="text-xs text-muted">{list.length} waiting · base {pkr(t.base_price)}</span>
                   </div>
                   <ul className="space-y-1">
                     {list.map((p) => (
@@ -169,7 +170,7 @@ function FeedPanel({ snap }: { snap: Snapshot }) {
         teamId: r.team_id,
         text:
           r.status === "sold"
-            ? `${r.player_name} SOLD to ${snap.teams.find((t) => t.id === r.team_id)?.name} for ${r.price}`
+            ? `${r.player_name} SOLD to ${snap.teams.find((t) => t.id === r.team_id)?.name} for ${pkr(r.price)}`
             : r.status === "cancelled"
               ? `${r.player_name} — lot cancelled`
               : `${r.player_name} unsold`,

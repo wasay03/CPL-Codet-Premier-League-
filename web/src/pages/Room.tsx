@@ -12,6 +12,7 @@ import type { Snapshot } from "../api/types";
 import { useSession } from "../lib/session";
 import { useAuction } from "../realtime/auctionStore";
 import { useCountdown } from "../realtime/useCountdown";
+import { pkr } from "../lib/money";
 
 export function RoomPage() {
   const snap = useAuction((s) => s.snap);
@@ -85,7 +86,7 @@ function BidLadder({ snap }: { snap: Snapshot }) {
               style={i === 0 ? { background: t?.color } : undefined}
             >
               {i !== 0 && <span className="h-2 w-2 rounded-full" style={{ background: t?.color }} />}
-              <b>{b.amount}</b>
+              <b>{pkr(b.amount)}</b>
               <span className={clsx("text-xs", i === 0 ? "text-white/80" : "text-muted")}>{t?.short_code}</span>
             </span>
           );
